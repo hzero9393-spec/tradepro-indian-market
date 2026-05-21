@@ -1,54 +1,31 @@
-import { readFileSync } from 'fs'
-import { join } from 'path'
 import { PrismaClient } from '@prisma/client'
 
-// Force DATABASE_URL to PostgreSQL by reading .env directly.
-// The system env may have a stale SQLite URL that overrides the .env file.
-// Next.js caches env vars at startup, so dotenv override doesn't work at runtime.
-function getPostgresUrl(): string {
-  // 1. Check if DATABASE_URL is already a PostgreSQL URL
+// Prisma connection for Vercel serverless / Node.js runtime
+// Uses DIRECT_URL (port 5432) for direct connection which works better in serverless.
+// PgBouncer pooler (port 6543) requires prepared statements to be disabled.
+function getDatabaseUrl(): string {
+  // 1. Prefer DIRECT_URL for direct database connection (better for serverless)
+  if (process.env.DIRECT_URL?.startsWith('postgresql://')) {
+    return process.env.DIRECT_URL
+  }
+
+  // 2. Check DATABASE_URL
   if (process.env.DATABASE_URL?.startsWith('postgresql://')) {
     return process.env.DATABASE_URL
   }
 
-  // 2. Check APP_DATABASE_URL (loaded by Next.js from .env)
+  // 3. Check APP_DATABASE_URL
   if (process.env.APP_DATABASE_URL?.startsWith('postgresql://')) {
     return process.env.APP_DATABASE_URL
   }
 
-  // 3. Fallback: parse .env file directly
-  try {
-    const envPath = join(process.cwd(), '.env')
-    const envContent = readFileSync(envPath, 'utf-8')
-    for (const line of envContent.split('\n')) {
-      const match = line.match(/^APP_DATABASE_URL\s*=\s*"?([^"]+)"?/)
-      if (match && match[1].startsWith('postgresql://')) {
-        return match[1]
-      }
-    }
-    for (const line of envContent.split('\n')) {
-      const match = line.match(/^DATABASE_URL\s*=\s*"?([^"]+)"?/)
-      if (match && match[1].startsWith('postgresql://')) {
-        return match[1]
-      }
-    }
-  } catch {
-    // .env file not readable
-  }
-
-  // This should never happen in production
-  throw new Error('No PostgreSQL DATABASE_URL found. Check .env file.')
+  throw new Error('No PostgreSQL DATABASE_URL found. Check environment variables.')
 }
 
-const datasourceUrl = getPostgresUrl()
+const datasourceUrl = getDatabaseUrl()
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
-}
-
-// Always create fresh client in development to avoid stale cache issues
-if (globalForPrisma.prisma && process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = undefined
 }
 
 export const db =
