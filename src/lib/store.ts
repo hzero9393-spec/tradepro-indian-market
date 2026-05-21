@@ -2,17 +2,15 @@ import { create } from 'zustand'
 
 export type PageId = 
   | 'dashboard'
-  | 'trading'
-  | 'portfolio'
-  | 'orders'
-  | 'analytics'
-  | 'optionChain'
-  | 'futures'
-  | 'challenges'
-  | 'leaderboard'
-  | 'learning'
-  | 'settings'
-  | 'admin'
+  | 'trading'      // Stock trading screen
+  | 'positions'    // Positions with Index/Stock tabs
+  | 'orders'       // Orders with Index/Stock tabs
+  | 'portfolio'    // Portfolio overview
+  | 'reports'      // Reports/analytics
+  | 'optionChain'  // Option chain (accessible from index detail)
+  | 'futures'      // Futures trading
+  | 'learning'     // Learn section
+  | 'profile'      // Profile/settings
 
 interface AppState {
   currentPage: PageId

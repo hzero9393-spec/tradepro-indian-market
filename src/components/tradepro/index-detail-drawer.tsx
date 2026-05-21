@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuthStore } from '@/lib/auth-store'
+import { useTradeSuccess } from '@/components/tradepro/trade-success-popup'
 import { toast } from 'sonner'
 import {
   Sheet,
@@ -1038,6 +1039,7 @@ function OptionTradeModal({
   lotSize: number
 }) {
   const { token } = useAuthStore()
+  const { showTradeSuccess } = useTradeSuccess()
   const [lots, setLots] = useState(1)
   const [direction, setDirection] = useState<'BUY' | 'SELL'>('BUY')
   const [placing, setPlacing] = useState(false)
@@ -1081,6 +1083,21 @@ function OptionTradeModal({
       const data = await res.json()
       if (res.ok && data.success) {
         toast.success(data.message)
+        // Show trade success popup
+        const ltp = side === 'CE' ? row.ceLTP : row.peLTP
+        showTradeSuccess({
+          symbol: instrument,
+          type: direction,
+          qty: lots * lotSize,
+          price: ltp,
+          time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase(),
+          orderId: data.order?.id?.slice(-8).toUpperCase() || 'N/A',
+          segment: 'OPTIONS',
+          optionType: side,
+          strikePrice: row.strike,
+          totalValue: data.order?.totalValue,
+          brokerage: data.order?.brokerage,
+        })
         onOpenChange(false)
       } else {
         toast.error(data.error || 'Failed to place order')

@@ -308,6 +308,15 @@ export function DashboardPage() {
     fetchMarketIndices()
   }, [fetchPortfolio, fetchPositions, fetchTrades, fetchMarketIndices])
 
+  // ─── Auto-refresh positions & portfolio every 10 sec for live P&L ──
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchPositions()
+      fetchPortfolio()
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [fetchPositions, fetchPortfolio])
+
   // ─── Listen for index detail events from ticker ────────────────
   useEffect(() => {
     const handler = (e: Event) => {
@@ -835,7 +844,7 @@ export function DashboardPage() {
               variant="outline"
               size="sm"
               className="mt-4 gap-1.5 text-tp-primary border-tp-primary/30 hover:bg-tp-primary/10 hover:text-tp-primary spring-interaction"
-              onClick={() => setCurrentPage('analytics')}
+              onClick={() => setCurrentPage('reports')}
             >
               Explore
               <ArrowUpRight className="size-3.5" />
@@ -857,7 +866,7 @@ export function DashboardPage() {
               variant="outline"
               size="sm"
               className="mt-4 gap-1.5 text-tp-tertiary border-tp-tertiary/30 hover:bg-tp-tertiary/10 hover:text-tp-tertiary spring-interaction"
-              onClick={() => setCurrentPage('analytics')}
+              onClick={() => setCurrentPage('reports')}
             >
               Analyze
               <ArrowUpRight className="size-3.5" />

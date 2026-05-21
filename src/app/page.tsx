@@ -11,15 +11,14 @@ import { DashboardPage } from '@/components/tradepro/pages/dashboard-page'
 import { TradingPage } from '@/components/tradepro/pages/trading-page'
 import PortfolioPage from '@/components/tradepro/pages/portfolio-page'
 import { OrdersPage } from '@/components/tradepro/pages/orders-page'
-import AnalyticsPage from '@/components/tradepro/pages/analytics-page'
-import { SettingsPage } from '@/components/tradepro/pages/settings-page'
-import { ChallengesPage } from '@/components/tradepro/pages/challenges-page'
-import { LeaderboardPage } from '@/components/tradepro/pages/leaderboard-page'
-import { LearningPage } from '@/components/tradepro/pages/learning-page'
-import { AdminPage } from '@/components/tradepro/pages/admin-page'
+import { PositionsPage } from '@/components/tradepro/pages/positions-page'
+import { ReportsPage } from '@/components/tradepro/pages/reports-page'
+import { ProfilePage } from '@/components/tradepro/pages/profile-page'
 import { OptionChainPage } from '@/components/tradepro/pages/option-chain-page'
 import { FuturesPage } from '@/components/tradepro/pages/futures-page'
+import { LearningPage } from '@/components/tradepro/pages/learning-page'
 import { IndexTicker } from '@/components/tradepro/index-ticker'
+import { TradeSuccessProvider } from '@/components/tradepro/trade-success-popup'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { TrendingUp } from 'lucide-react'
 
@@ -29,26 +28,22 @@ function PageContent({ page }: { page: string }) {
       return <DashboardPage />
     case 'trading':
       return <TradingPage />
-    case 'portfolio':
-      return <PortfolioPage />
+    case 'positions':
+      return <PositionsPage />
     case 'orders':
       return <OrdersPage />
-    case 'analytics':
-      return <AnalyticsPage />
+    case 'portfolio':
+      return <PortfolioPage />
+    case 'reports':
+      return <ReportsPage />
     case 'optionChain':
       return <OptionChainPage />
     case 'futures':
       return <FuturesPage />
-    case 'challenges':
-      return <ChallengesPage />
-    case 'leaderboard':
-      return <LeaderboardPage />
     case 'learning':
       return <LearningPage />
-    case 'settings':
-      return <SettingsPage />
-    case 'admin':
-      return <AdminPage />
+    case 'profile':
+      return <ProfilePage />
     default:
       return <DashboardPage />
   }
@@ -108,48 +103,52 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-tp-surface">
-      {/* Desktop Sidebar */}
-      <Sidebar onLogout={handleLogout} userName={user?.name} userEmail={user?.email} userRole={user?.role} />
+    <TradeSuccessProvider>
+      <div className="flex min-h-screen flex-col bg-tp-surface">
+        {/* Desktop Sidebar */}
+        <Sidebar onLogout={handleLogout} userName={user?.name} userEmail={user?.email} userRole={user?.role} />
 
-      {/* Mobile Sidebar Sheet */}
-      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetContent side="left" className="w-[280px] p-0">
-          <Sidebar onLogout={handleLogout} userName={user?.name} userEmail={user?.email} userRole={user?.role} />
-        </SheetContent>
-      </Sheet>
+        {/* Mobile Sidebar Sheet */}
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <SheetContent side="left" className="w-[260px] p-0">
+            <Sidebar onLogout={handleLogout} userName={user?.name} userEmail={user?.email} userRole={user?.role} />
+          </SheetContent>
+        </Sheet>
 
-      {/* Top Bar */}
-      <TopBar userName={user?.name} onLogout={handleLogout} />
+        {/* Top Bar */}
+        <TopBar userName={user?.name} onLogout={handleLogout} />
 
-      {/* Indian Market Index Ticker */}
-      <IndexTicker />
+        {/* Indian Market Index Ticker */}
+        <IndexTicker />
 
-      {/* Main Content */}
-      <main className="flex-1 md:ml-[280px] pt-24 pb-20 md:pb-0">
-        <PageContent page={currentPage} />
+        {/* Main Content */}
+        <main className="flex-1 md:ml-[260px] pt-20 pb-20 md:pb-0">
+          <PageContent page={currentPage} />
 
-        {/* Sticky Footer */}
-        <footer className="border-t border-tp-outline-variant/30 bg-tp-surface/90 backdrop-blur-sm px-6 py-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl mx-auto">
-            <div className="flex items-center gap-2">
-              <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <TrendingUp className="size-3.5" />
+          {/* Sticky Footer */}
+          <footer className="border-t border-tp-outline-variant/30 bg-tp-surface/90 backdrop-blur-sm px-6 py-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl mx-auto">
+              <div className="flex items-center gap-2">
+                <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                  <TrendingUp className="size-3.5" />
+                </div>
+                <span className="text-sm font-semibold text-tp-on-surface">TradePro</span>
+                <span className="text-xs text-tp-on-surface-variant">© 2025</span>
               </div>
-              <span className="text-sm font-semibold text-tp-on-surface">TradePro</span>
-              <span className="text-xs text-tp-on-surface-variant">© 2025</span>
+              <div className="flex items-center gap-4 text-xs text-tp-on-surface-variant">
+                <span>Paper Trading Simulator</span>
+                <span>•</span>
+                <span>No Real Money</span>
+                <span>•</span>
+                <span>Learning Only</span>
+              </div>
             </div>
-            <div className="flex items-center gap-4 text-xs text-tp-on-surface-variant">
-              <span className="hover:text-tp-on-surface cursor-pointer transition-colors">Privacy Policy</span>
-              <span className="hover:text-tp-on-surface cursor-pointer transition-colors">Terms of Service</span>
-              <span className="hover:text-tp-on-surface cursor-pointer transition-colors">Contact Support</span>
-            </div>
-          </div>
-        </footer>
-      </main>
+          </footer>
+        </main>
 
-      {/* Mobile Bottom Nav */}
-      <MobileNav />
-    </div>
+        {/* Mobile Bottom Nav */}
+        <MobileNav />
+      </div>
+    </TradeSuccessProvider>
   )
 }

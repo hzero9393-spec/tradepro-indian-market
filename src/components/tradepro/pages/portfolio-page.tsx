@@ -133,6 +133,9 @@ export default function PortfolioPage() {
 
   useEffect(() => {
     loadData()
+    // Auto-refresh every 10 seconds for live P&L
+    const interval = setInterval(loadData, 10000)
+    return () => clearInterval(interval)
   }, [loadData])
 
   const handleSquareOff = async (positionId: string, symbol: string) => {

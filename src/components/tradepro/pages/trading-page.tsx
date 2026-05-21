@@ -58,6 +58,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/lib/auth-store'
+import { useTradeSuccess } from '@/components/tradepro/trade-success-popup'
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -206,6 +207,7 @@ function MiniSparkline({ data, positive }: { data: number[]; positive: boolean }
 
 export function TradingPage() {
   const { token, user } = useAuthStore()
+  const { showTradeSuccess } = useTradeSuccess()
 
   // ── State ─────────────────────────────────────────────────────────────
   const [stocks, setStocks] = useState<TradeableStock[]>([])
@@ -354,12 +356,25 @@ export function TradingPage() {
 
       if (res.ok && data.success) {
         const direction = orderSide === 'buy' ? 'BUY' : 'SELL'
+        const fillPrice = orderType === 'MARKET' ? selectedStock.currentPrice : parseFloat(price)
         toast.success(
-          `${direction} ${quantity} ${selectedStock.symbol} @ ₹${orderType === 'MARKET' ? selectedStock.currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : parseFloat(price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+          `${direction} ${quantity} ${selectedStock.symbol} @ ₹${fillPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
           {
             description: `Order filled successfully • Brokerage: ₹${estimatedBrokerage.toLocaleString('en-IN')}`,
           }
         )
+        // Show trade success popup
+        showTradeSuccess({
+          symbol: selectedStock.symbol,
+          type: direction,
+          qty: quantity,
+          price: fillPrice,
+          time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase(),
+          orderId: data.order?.id?.slice(-8).toUpperCase() || 'N/A',
+          segment: 'EQUITY',
+          totalValue: data.order?.totalValue,
+          brokerage: data.order?.brokerage,
+        })
         // Refresh data
         await refreshAfterTrade()
       } else {

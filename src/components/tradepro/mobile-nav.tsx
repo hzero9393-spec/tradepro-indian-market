@@ -3,7 +3,8 @@
 import {
   LayoutDashboard,
   CandlestickChart,
-  BarChart3,
+  Crosshair,
+  FileText,
   Wallet,
   User,
 } from 'lucide-react'
@@ -18,10 +19,11 @@ interface MobileNavItem {
 
 const mobileNavItems: MobileNavItem[] = [
   { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-  { id: 'trading', label: 'Trade', icon: CandlestickChart },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { id: 'portfolio', label: 'Wallet', icon: Wallet },
-  { id: 'settings', label: 'Profile', icon: User },
+  { id: 'trading', label: 'Stock', icon: CandlestickChart },
+  { id: 'positions', label: 'Positions', icon: Crosshair },
+  { id: 'orders', label: 'Orders', icon: FileText },
+  { id: 'portfolio', label: 'Portfolio', icon: Wallet },
+  { id: 'profile', label: 'Profile', icon: User },
 ]
 
 export function MobileNav() {

@@ -33,6 +33,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { useAuthStore } from '@/lib/auth-store'
+import { useTradeSuccess } from '@/components/tradepro/trade-success-popup'
 import { toast } from 'sonner'
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -111,6 +112,7 @@ const INSTRUMENT_CONFIG: Record<Instrument, { lotSize: number }> = {
 // ─── Main Component ──────────────────────────────────────────────────
 export function FuturesPage() {
   const { token } = useAuthStore()
+  const { showTradeSuccess } = useTradeSuccess()
 
   const [instrument, setInstrument] = useState<Instrument>('NIFTY')
   const [contractIdx, setContractIdx] = useState(0)
@@ -278,6 +280,18 @@ export function FuturesPage() {
       const data = await res.json()
       if (res.ok && data.success) {
         toast.success(data.message)
+        // Show trade success popup
+        showTradeSuccess({
+          symbol: instrument,
+          type: direction,
+          qty: totalQty,
+          price: selectedContract?.ltp || 0,
+          time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase(),
+          orderId: data.order?.id?.slice(-8).toUpperCase() || 'N/A',
+          segment: 'FUTURES',
+          totalValue: data.order?.totalValue,
+          brokerage: data.order?.brokerage,
+        })
         await Promise.all([fetchPositions(), fetchPortfolio()])
       } else {
         toast.error(data.error || 'Failed to place order')
