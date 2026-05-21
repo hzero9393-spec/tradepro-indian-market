@@ -123,8 +123,8 @@ const marketNews = [
 ]
 
 const chartConfig = {
-  price: { label: 'Price', color: '#0058be' },
-  volume: { label: 'Volume', color: '#c2c6d6' },
+  price: { label: 'Price', color: '#f59e0b' },
+  volume: { label: 'Volume', color: '#374151' },
 } satisfies ChartConfig
 
 const timeRanges = ['1m', '5m', '15m', '1H', '4H', '1D', '1W'] as const
@@ -194,7 +194,7 @@ function MiniSparkline({ data, positive }: { data: number[]; positive: boolean }
       <polyline
         points={points}
         fill="none"
-        stroke={positive ? '#006c49' : '#b61722'}
+        stroke={positive ? '#10b981' : '#ef4444'}
         strokeWidth={1.5}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -468,28 +468,28 @@ export function TradingPage() {
   const buyingPower = portfolio?.availableMargin ?? ((user?.virtualBalance ?? 0) - (user?.marginUsed ?? 0))
 
   return (
-    <div className="min-h-screen bg-tp-surface p-4 sm:p-6 lg:p-8 space-y-5">
+    <div className="min-h-screen bg-[#0a0e17] p-4 sm:p-6 lg:p-8 space-y-5">
       {/* ── Page Header ─────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-tp-on-surface tracking-tight">
-            Trading Terminal
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            Trade Execution
           </h1>
-          <p className="text-tp-on-surface-variant mt-1 text-sm">
+          <p className="text-gray-400 mt-1 text-sm">
             Execute trades and monitor instruments in real-time.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tp-outline" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
             <Input
               placeholder="Search instruments..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 w-48 sm:w-64 bg-tp-surface-container-lowest border-tp-outline-variant/40 text-sm"
+              className="pl-9 h-9 w-48 sm:w-64 bg-[#0a0e17] border-[#1f2937] text-sm text-white placeholder:text-gray-500"
             />
           </div>
-          <div className="flex items-center rounded-lg border border-tp-outline-variant/40 bg-tp-surface-container-lowest p-0.5">
+          <div className="flex items-center rounded-lg border border-[#1f2937] bg-[#111827] p-0.5">
             <Button
               variant={viewMode === 'grid' ? 'default' : 'ghost'}
               size="sm"
@@ -515,16 +515,16 @@ export function TradingPage() {
         {loadingStocks ? (
           // Loading skeletons
           Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="glass-card rounded-xl shadow-sm shrink-0 w-[180px] animate-pulse">
+            <Card key={i} className="bg-[#111827] border border-[#1f2937] rounded-xl shrink-0 w-[180px] animate-pulse">
               <CardContent className="p-3 sm:p-4">
-                <div className="h-4 bg-muted rounded w-20 mb-2" />
-                <div className="h-6 bg-muted rounded w-28 mb-2" />
-                <div className="h-6 bg-muted rounded w-16" />
+                <div className="h-4 bg-[#1f2937] rounded w-20 mb-2" />
+                <div className="h-6 bg-[#1f2937] rounded w-28 mb-2" />
+                <div className="h-6 bg-[#1f2937] rounded w-16" />
               </CardContent>
             </Card>
           ))
         ) : filteredStocks.length === 0 ? (
-          <div className="flex items-center justify-center w-full py-8 text-tp-on-surface-variant text-sm">
+          <div className="flex items-center justify-center w-full py-8 text-gray-400 text-sm">
             {searchQuery ? 'No stocks match your search.' : 'No tradeable stocks found.'}
           </div>
         ) : (
@@ -535,23 +535,23 @@ export function TradingPage() {
             return (
               <Card
                 key={stock.symbol}
-                className={`glass-card rounded-xl shadow-sm shrink-0 w-[180px] hover:shadow-md transition-shadow cursor-pointer border-l-4 ${
-                  isSelected ? 'ring-2 ring-tp-primary/50' : ''
+                className={`bg-[#111827] border border-[#1f2937] rounded-xl shrink-0 w-[180px] hover:shadow-md transition-shadow cursor-pointer border-l-4 ${
+                  isSelected ? 'ring-2 ring-amber-500/50' : ''
                 }`}
                 style={{
-                  borderLeftColor: isPositive ? '#006c49' : '#b61722',
+                  borderLeftColor: isPositive ? '#10b981' : '#ef4444',
                 }}
                 onClick={() => handleSelectStock(stock)}
               >
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-bold text-sm text-tp-on-surface">{stock.symbol}</span>
+                    <span className="font-bold text-sm text-white">{stock.symbol}</span>
                     <Badge
                       variant="secondary"
                       className={`text-[10px] font-semibold border-0 gap-0.5 px-1.5 py-0 ${
                         isPositive
-                          ? 'bg-tp-secondary/10 text-tp-secondary'
-                          : 'bg-tp-tertiary/10 text-tp-tertiary'
+                          ? 'bg-emerald-500/10 text-emerald-500'
+                          : 'bg-red-500/10 text-red-500'
                       }`}
                     >
                       {isPositive ? (
@@ -563,7 +563,7 @@ export function TradingPage() {
                       {stock.changePercent.toFixed(2)}%
                     </Badge>
                   </div>
-                  <p className="font-mono-data text-lg font-semibold text-tp-on-surface">
+                  <p className="font-mono-data text-lg font-semibold text-white">
                     ₹{stock.currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </p>
                   <div className="mt-2">
@@ -579,23 +579,23 @@ export function TradingPage() {
       {/* ── Main Trading Panel ──────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
         {/* Chart Area - Left 3/5 */}
-        <Card className="glass-card rounded-xl shadow-sm lg:col-span-3">
+        <Card className="bg-[#111827] border border-[#1f2937] rounded-xl lg:col-span-3">
           <CardHeader className="pb-2">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 {selectedStock ? (
                   <>
                     <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg font-semibold text-tp-on-surface">
+                      <CardTitle className="text-lg font-semibold text-white">
                         {selectedStock.symbol}
                       </CardTitle>
-                      <span className="text-sm text-tp-on-surface-variant">{selectedStock.name}</span>
+                      <span className="text-sm text-gray-400">{selectedStock.name}</span>
                       <Badge
                         variant="secondary"
                         className={`gap-0.5 border-0 text-[10px] font-semibold ${
                           selectedStock.changePercent >= 0
-                            ? 'bg-tp-secondary/10 text-tp-secondary'
-                            : 'bg-tp-tertiary/10 text-tp-tertiary'
+                            ? 'bg-emerald-500/10 text-emerald-500'
+                            : 'bg-red-500/10 text-red-500'
                         }`}
                       >
                         {selectedStock.changePercent >= 0 ? (
@@ -608,11 +608,11 @@ export function TradingPage() {
                       </Badge>
                     </div>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-2xl font-bold font-mono-data text-tp-on-surface">
+                      <span className="text-2xl font-bold font-mono-data text-white">
                         ₹{selectedStock.currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
                       <span className={`text-sm font-medium ${
-                        selectedStock.changePercent >= 0 ? 'text-tp-secondary' : 'text-tp-tertiary'
+                        selectedStock.changePercent >= 0 ? 'text-emerald-500' : 'text-red-500'
                       }`}>
                         {selectedStock.changePercent >= 0 ? '+' : ''}
                         ₹{selectedStock.change.toLocaleString('en-IN', { minimumFractionDigits: 2 })} today
@@ -621,22 +621,26 @@ export function TradingPage() {
                   </>
                 ) : (
                   <>
-                    <CardTitle className="text-lg font-semibold text-tp-on-surface">
+                    <CardTitle className="text-lg font-semibold text-white">
                       Select a Stock
                     </CardTitle>
-                    <p className="text-sm text-tp-on-surface-variant mt-1">
+                    <p className="text-sm text-gray-400 mt-1">
                       Click on a stock from the watchlist to view its chart.
                     </p>
                   </>
                 )}
               </div>
-              <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+              <div className="flex items-center gap-1 bg-[#0a0e17] rounded-lg p-1 border border-[#1f2937]">
                 {timeRanges.map((range) => (
                   <Button
                     key={range}
                     variant={activeRange === range ? 'default' : 'ghost'}
                     size="sm"
-                    className="h-7 px-2.5 text-xs font-medium"
+                    className={`h-7 px-2.5 text-xs font-medium ${
+                      activeRange === range
+                        ? 'bg-amber-500 text-black hover:bg-amber-600'
+                        : 'text-gray-400 hover:text-white hover:bg-[#1f2937]'
+                    }`}
                     onClick={() => setActiveRange(range)}
                   >
                     {range}
@@ -651,11 +655,11 @@ export function TradingPage() {
               <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="fillPrice" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0058be" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#0058be" stopOpacity={0.01} />
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.01} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#1f2937" />
                 <XAxis
                   dataKey="time"
                   tickLine={false}
@@ -663,6 +667,7 @@ export function TradingPage() {
                   tickMargin={8}
                   fontSize={10}
                   interval={7}
+                  tick={{ fill: '#9ca3af' }}
                 />
                 <YAxis
                   yAxisId="price"
@@ -672,6 +677,7 @@ export function TradingPage() {
                   fontSize={10}
                   domain={['dataMin - 1', 'dataMax + 1']}
                   tickFormatter={(value: number) => `₹${value.toFixed(0)}`}
+                  tick={{ fill: '#9ca3af' }}
                 />
                 <YAxis
                   yAxisId="volume"
@@ -684,6 +690,7 @@ export function TradingPage() {
                 <ChartTooltip
                   content={
                     <ChartTooltipContent
+                      className="bg-[#111827] border-[#1f2937] text-white"
                       formatter={(value, name) => (
                         <span className="font-mono-data font-semibold">
                           {name === 'price' ? `₹${Number(value).toFixed(2)}` : Number(value).toLocaleString('en-IN')}
@@ -696,15 +703,15 @@ export function TradingPage() {
                   yAxisId="price"
                   type="monotone"
                   dataKey="price"
-                  stroke="#0058be"
+                  stroke="#f59e0b"
                   strokeWidth={2}
                   fill="url(#fillPrice)"
                 />
                 <Bar
                   yAxisId="volume"
                   dataKey="volume"
-                  fill="#c2c6d6"
-                  opacity={0.3}
+                  fill="#374151"
+                  opacity={0.4}
                   barSize={4}
                 />
               </ComposedChart>
@@ -713,33 +720,33 @@ export function TradingPage() {
         </Card>
 
         {/* Order Panel - Right 2/5 */}
-        <Card className="glass-card rounded-xl shadow-sm lg:col-span-2">
+        <Card className="bg-[#111827] border border-[#1f2937] rounded-xl lg:col-span-2">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold text-tp-on-surface">
-              Place Order
+            <CardTitle className="text-lg font-semibold text-white">
+              Order Panel
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Selected Stock Indicator */}
             {selectedStock && (
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-tp-surface-container-low/80 border border-tp-outline-variant/20">
-                <span className="font-bold text-sm text-tp-primary">{selectedStock.symbol}</span>
-                <span className="text-xs text-tp-on-surface-variant">•</span>
-                <span className="text-xs text-tp-on-surface-variant truncate">{selectedStock.name}</span>
-                <span className="ml-auto font-mono-data text-sm font-semibold text-tp-on-surface">
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-[#0a0e17] border border-[#1f2937]">
+                <span className="font-bold text-sm text-amber-500">{selectedStock.symbol}</span>
+                <span className="text-xs text-gray-400">•</span>
+                <span className="text-xs text-gray-400 truncate">{selectedStock.name}</span>
+                <span className="ml-auto font-mono-data text-sm font-semibold text-white">
                   ₹{selectedStock.currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
               </div>
             )}
 
             {/* Buy/Sell Toggle */}
-            <div className="flex rounded-lg bg-muted/50 p-1">
+            <div className="flex rounded-lg bg-[#0a0e17] p-1 border border-[#1f2937]">
               <Button
                 variant={orderSide === 'buy' ? 'default' : 'ghost'}
                 className={`flex-1 h-9 text-sm font-semibold ${
                   orderSide === 'buy'
-                    ? 'bg-tp-secondary text-white hover:bg-tp-secondary/90'
-                    : 'text-tp-on-surface-variant'
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                    : 'text-gray-400 hover:text-white'
                 }`}
                 onClick={() => setOrderSide('buy')}
               >
@@ -749,8 +756,8 @@ export function TradingPage() {
                 variant={orderSide === 'sell' ? 'default' : 'ghost'}
                 className={`flex-1 h-9 text-sm font-semibold ${
                   orderSide === 'sell'
-                    ? 'bg-tp-tertiary text-white hover:bg-tp-tertiary/90'
-                    : 'text-tp-on-surface-variant'
+                    ? 'bg-red-500 text-white hover:bg-red-600'
+                    : 'text-gray-400 hover:text-white'
                 }`}
                 onClick={() => setOrderSide('sell')}
               >
@@ -760,14 +767,14 @@ export function TradingPage() {
 
             {/* Order Type */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-tp-on-surface-variant uppercase tracking-wider">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 Order Type
               </label>
               <Select value={orderType} onValueChange={setOrderType}>
-                <SelectTrigger className="w-full h-9 bg-tp-surface-container-lowest border-tp-outline-variant/40">
+                <SelectTrigger className="w-full h-9 bg-[#0a0e17] border-[#1f2937] text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-[#111827] border-[#1f2937]">
                   <SelectItem value="MARKET">Market</SelectItem>
                   <SelectItem value="LIMIT">Limit</SelectItem>
                 </SelectContent>
@@ -776,14 +783,14 @@ export function TradingPage() {
 
             {/* Product Type */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-tp-on-surface-variant uppercase tracking-wider">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 Product Type
               </label>
               <Select value={productType} onValueChange={setProductType}>
-                <SelectTrigger className="w-full h-9 bg-tp-surface-container-lowest border-tp-outline-variant/40">
+                <SelectTrigger className="w-full h-9 bg-[#0a0e17] border-[#1f2937] text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-[#111827] border-[#1f2937]">
                   <SelectItem value="INTRADAY">Intraday</SelectItem>
                   <SelectItem value="DELIVERY">Delivery</SelectItem>
                 </SelectContent>
@@ -792,14 +799,14 @@ export function TradingPage() {
 
             {/* Quantity */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-tp-on-surface-variant uppercase tracking-wider">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 Quantity
               </label>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 w-9 p-0 border-tp-outline-variant/40"
+                  className="h-9 w-9 p-0 border-[#1f2937] text-gray-400 hover:text-white hover:bg-[#1f2937]"
                   onClick={() => setQuantity(Math.max(1, quantity - 10))}
                 >
                   <Minus className="size-3.5" />
@@ -808,12 +815,12 @@ export function TradingPage() {
                   type="number"
                   value={quantity}
                   onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="h-9 text-center font-mono-data bg-tp-surface-container-lowest border-tp-outline-variant/40"
+                  className="h-9 text-center font-mono-data bg-[#0a0e17] border-[#1f2937] text-white"
                 />
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 w-9 p-0 border-tp-outline-variant/40"
+                  className="h-9 w-9 p-0 border-[#1f2937] text-gray-400 hover:text-white hover:bg-[#1f2937]"
                   onClick={() => setQuantity(quantity + 10)}
                 >
                   <Plus className="size-3.5" />
@@ -824,36 +831,36 @@ export function TradingPage() {
             {/* Price (for limit orders) */}
             {orderType === 'LIMIT' && (
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-tp-on-surface-variant uppercase tracking-wider">
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   Limit Price
                 </label>
                 <Input
                   type="number"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  className="h-9 font-mono-data bg-tp-surface-container-lowest border-tp-outline-variant/40"
+                  className="h-9 font-mono-data bg-[#0a0e17] border-[#1f2937] text-white"
                   placeholder="0.00"
                 />
               </div>
             )}
 
             {/* Total & Brokerage */}
-            <div className="rounded-lg bg-tp-surface-container-low/80 p-3 border border-tp-outline-variant/20 space-y-2">
+            <div className="rounded-lg bg-[#0a0e17] p-3 border border-[#1f2937] space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-tp-on-surface-variant">Estimated Total</span>
-                <span className="font-mono-data text-lg font-bold text-tp-on-surface">
+                <span className="text-sm text-gray-400">Estimated Total</span>
+                <span className="font-mono-data text-lg font-bold text-white">
                   ₹{estimatedTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-tp-on-surface-variant">Est. Brokerage (0.05%)</span>
-                <span className="font-mono-data text-xs font-medium text-tp-on-surface-variant">
+                <span className="text-xs text-gray-400">Est. Brokerage (0.05%)</span>
+                <span className="font-mono-data text-xs font-medium text-gray-400">
                   ₹{estimatedBrokerage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-tp-on-surface-variant">Total (incl. brokerage)</span>
-                <span className="font-mono-data text-xs font-semibold text-tp-on-surface">
+                <span className="text-xs text-gray-400">Total (incl. brokerage)</span>
+                <span className="font-mono-data text-xs font-semibold text-white">
                   ₹{(estimatedTotal + estimatedBrokerage).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -861,10 +868,10 @@ export function TradingPage() {
 
             {/* Submit Button */}
             <Button
-              className={`w-full h-11 text-sm font-semibold spring-interaction ${
+              className={`w-full h-11 text-sm font-semibold ${
                 orderSide === 'buy'
-                  ? 'bg-tp-secondary hover:bg-tp-secondary/90 text-white'
-                  : 'bg-tp-tertiary hover:bg-tp-tertiary/90 text-white'
+                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                  : 'bg-red-500 hover:bg-red-600 text-white'
               }`}
               onClick={handlePlaceOrder}
               disabled={placingOrder || !selectedStock}
@@ -880,22 +887,22 @@ export function TradingPage() {
             </Button>
 
             {!selectedStock && (
-              <p className="text-xs text-tp-tertiary text-center">
+              <p className="text-xs text-red-500 text-center">
                 Select a stock from the watchlist to trade
               </p>
             )}
 
             {/* Account Stats */}
-            <div className="space-y-2 pt-2 border-t border-tp-outline-variant/20">
+            <div className="space-y-2 pt-2 border-t border-[#1f2937]">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-tp-on-surface-variant">Available Balance</span>
-                <span className="font-mono-data text-sm font-semibold text-tp-on-surface">
+                <span className="text-xs text-gray-400">Available Balance</span>
+                <span className="font-mono-data text-sm font-semibold text-white">
                   ₹{availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-tp-on-surface-variant">Buying Power</span>
-                <span className="font-mono-data text-sm font-semibold text-tp-on-surface">
+                <span className="text-xs text-gray-400">Buying Power</span>
+                <span className="font-mono-data text-sm font-semibold text-white">
                   ₹{Math.max(0, buyingPower).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -904,14 +911,14 @@ export function TradingPage() {
         </Card>
       </div>
 
-      {/* ── Open Positions ──────────────────────────────────────────────── */}
-      <Card className="glass-card rounded-xl shadow-sm">
+      {/* ── Active Positions ──────────────────────────────────────────────── */}
+      <Card className="bg-[#111827] border border-[#1f2937] rounded-xl">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold text-tp-on-surface">
-              Open Positions
+            <CardTitle className="text-lg font-semibold text-white">
+              Active Positions
             </CardTitle>
-            <Badge variant="secondary" className="bg-tp-primary/10 text-tp-primary border-0 text-xs font-semibold">
+            <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-0 text-xs font-semibold">
               {positions.length} Active
             </Badge>
           </div>
@@ -919,11 +926,11 @@ export function TradingPage() {
         <CardContent>
           {loadingPositions ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="size-6 animate-spin text-tp-on-surface-variant" />
-              <span className="ml-2 text-sm text-tp-on-surface-variant">Loading positions...</span>
+              <Loader2 className="size-6 animate-spin text-gray-400" />
+              <span className="ml-2 text-sm text-gray-400">Loading positions...</span>
             </div>
           ) : positions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-tp-on-surface-variant">
+            <div className="flex flex-col items-center justify-center py-8 text-gray-400">
               <Newspaper className="size-8 mb-2 opacity-40" />
               <p className="text-sm">No open positions. Place a trade to get started!</p>
             </div>
@@ -931,29 +938,29 @@ export function TradingPage() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="hover:bg-transparent border-tp-outline-variant/30">
-                    <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider">
+                  <TableRow className="hover:bg-transparent border-[#1f2937]">
+                    <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider">
                       Symbol
                     </TableHead>
-                    <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider">
+                    <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider">
                       Side
                     </TableHead>
-                    <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider">
+                    <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider">
                       Segment
                     </TableHead>
-                    <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">
+                    <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">
                       Qty
                     </TableHead>
-                    <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">
+                    <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">
                       Avg Price
                     </TableHead>
-                    <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">
+                    <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">
                       CMP
                     </TableHead>
-                    <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">
+                    <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">
                       P&amp;L
                     </TableHead>
-                    <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">
+                    <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">
                       Action
                     </TableHead>
                   </TableRow>
@@ -964,9 +971,9 @@ export function TradingPage() {
                     return (
                       <TableRow
                         key={pos.id}
-                        className="border-tp-outline-variant/20 hover:bg-tp-surface-container-low/50"
+                        className="border-[#1f2937] hover:bg-[#1f2937]/50"
                       >
-                        <TableCell className="font-bold text-tp-primary text-sm">
+                        <TableCell className="font-bold text-amber-500 text-sm">
                           {pos.symbol}
                         </TableCell>
                         <TableCell>
@@ -974,8 +981,8 @@ export function TradingPage() {
                             variant="secondary"
                             className={`text-[10px] font-semibold border-0 gap-0.5 ${
                               isLong
-                                ? 'bg-tp-secondary/10 text-tp-secondary'
-                                : 'bg-tp-tertiary/10 text-tp-tertiary'
+                                ? 'bg-emerald-500/10 text-emerald-500'
+                                : 'bg-red-500/10 text-red-500'
                             }`}
                           >
                             {isLong ? (
@@ -986,21 +993,21 @@ export function TradingPage() {
                             {isLong ? 'Long' : 'Short'}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-xs text-tp-on-surface-variant">
+                        <TableCell className="text-xs text-gray-400">
                           {pos.segment}
                         </TableCell>
-                        <TableCell className="font-mono-data text-sm text-right text-tp-on-surface">
+                        <TableCell className="font-mono-data text-sm text-right text-white">
                           {pos.quantity}
                         </TableCell>
-                        <TableCell className="font-mono-data text-sm text-right text-tp-on-surface-variant">
+                        <TableCell className="font-mono-data text-sm text-right text-gray-400">
                           ₹{pos.entryPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className="font-mono-data text-sm text-right text-tp-on-surface">
+                        <TableCell className="font-mono-data text-sm text-right text-white">
                           ₹{pos.currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell
                           className={`font-mono-data text-sm font-semibold text-right ${
-                            pos.unrealizedPnl >= 0 ? 'text-tp-secondary' : 'text-tp-tertiary'
+                            pos.unrealizedPnl >= 0 ? 'text-emerald-500' : 'text-red-500'
                           }`}
                         >
                           {pos.unrealizedPnl >= 0 ? '+' : ''}₹{Math.abs(pos.unrealizedPnl).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -1009,7 +1016,7 @@ export function TradingPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-7 text-xs font-semibold border-tp-tertiary/40 text-tp-tertiary hover:bg-tp-tertiary/10 hover:text-tp-tertiary gap-1"
+                            className="h-7 text-xs font-semibold border-orange-500/40 text-orange-500 hover:bg-orange-500/10 hover:text-orange-500 gap-1"
                             onClick={() => handleSquareOff(pos.id, pos.symbol)}
                             disabled={squaringOff === pos.id}
                           >
@@ -1038,21 +1045,21 @@ export function TradingPage() {
           return (
             <Card
               key={idx}
-              className="glass-card rounded-xl shadow-sm group hover:shadow-md transition-shadow cursor-pointer"
+              className="bg-[#111827] border border-[#1f2937] rounded-xl group hover:shadow-md hover:border-amber-500/20 transition-shadow cursor-pointer"
             >
               <CardContent className="p-4 sm:p-5">
                 <div className="flex items-start gap-3">
-                  <div className="size-9 rounded-lg bg-tp-primary/10 flex items-center justify-center shrink-0 group-hover:bg-tp-primary/20 transition-colors">
-                    <Icon className="size-4 text-tp-primary" />
+                  <div className="size-9 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0 group-hover:bg-amber-500/20 transition-colors">
+                    <Icon className="size-4 text-amber-500" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="text-sm font-semibold text-tp-on-surface leading-snug line-clamp-2">
+                    <h4 className="text-sm font-semibold text-white leading-snug line-clamp-2">
                       {news.title}
                     </h4>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-[11px] font-medium text-tp-primary">{news.source}</span>
-                      <span className="text-tp-outline-variant">·</span>
-                      <span className="text-[11px] text-tp-on-surface-variant flex items-center gap-0.5">
+                      <span className="text-[11px] font-medium text-amber-500">{news.source}</span>
+                      <span className="text-gray-500">·</span>
+                      <span className="text-[11px] text-gray-400 flex items-center gap-0.5">
                         <Clock className="size-2.5" />
                         {news.time}
                       </span>

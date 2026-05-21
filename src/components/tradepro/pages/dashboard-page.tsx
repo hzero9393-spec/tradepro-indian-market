@@ -360,22 +360,22 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-tp-surface px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      {/* ═══ Market Overview Section ════════════════════════════════════════════ */}
+    <div className="min-h-screen bg-[#0a0e17] px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* ═══ Market Pulse Section ════════════════════════════════════════════ */}
       <motion.section
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl sm:text-3xl font-bold text-tp-on-surface tracking-tight">
-            Market Overview
+          <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            Market Pulse
           </h2>
           <div className="flex items-center gap-2">
-            <Badge className="bg-tp-secondary-container text-tp-on-secondary-container text-[10px] font-semibold px-2 py-0.5 border-0">
+            <Badge className="bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold px-2 py-0.5 border-0">
               LIVE
             </Badge>
-            <span className="text-xs font-semibold text-tp-on-surface-variant uppercase tracking-wider">
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               NSE - Open
             </span>
           </div>
@@ -385,11 +385,11 @@ export function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {marketLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i} className="bg-tp-surface-container-lowest shadow-md rounded-xl border border-tp-outline-variant/10">
+              <Card key={i} className="bg-[#111827] border border-[#1f2937] rounded-xl shadow-md">
                 <CardContent className="p-5">
-                  <Skeleton className="h-4 w-24 mb-3" />
-                  <Skeleton className="h-8 w-32 mb-2" />
-                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-4 w-24 mb-3 bg-[#1f2937]" />
+                  <Skeleton className="h-8 w-32 mb-2 bg-[#1f2937]" />
+                  <Skeleton className="h-4 w-28 bg-[#1f2937]" />
                 </CardContent>
               </Card>
             ))
@@ -405,29 +405,29 @@ export function DashboardPage() {
                 >
                   <Card
                     onClick={() => handleIndexClick(index.symbol)}
-                    className="bg-tp-surface-container-lowest shadow-md rounded-xl border border-tp-outline-variant/10 hover:shadow-lg hover:border-tp-primary/30 transition-all cursor-pointer group"
+                    className="bg-[#111827] border border-[#1f2937] rounded-xl shadow-md hover:shadow-lg hover:border-amber-500/30 transition-all cursor-pointer group"
                   >
                     <CardContent className="p-5">
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-tp-on-surface-variant tracking-wider uppercase">
+                          <span className="text-xs font-semibold text-gray-400 tracking-wider uppercase">
                             {index.name || index.symbol}
                           </span>
-                          <span className="text-[9px] font-bold text-tp-primary opacity-0 group-hover:opacity-100 transition-opacity bg-tp-primary/10 px-1.5 py-0.5 rounded">
+                          <span className="text-[9px] font-bold text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity bg-amber-500/10 px-1.5 py-0.5 rounded">
                             VIEW DETAILS →
                           </span>
                         </div>
                         {isPositive ? (
-                          <TrendingUp className="size-5 text-tp-secondary group-hover:scale-110 transition-transform" />
+                          <TrendingUp className="size-5 text-emerald-500 group-hover:scale-110 transition-transform" />
                         ) : (
-                          <TrendingDown className="size-5 text-tp-tertiary group-hover:scale-110 transition-transform" />
+                          <TrendingDown className="size-5 text-red-500 group-hover:scale-110 transition-transform" />
                         )}
                       </div>
                       <div>
-                        <div className="text-2xl font-bold font-mono-data text-tp-on-surface mb-1">
+                        <div className="text-2xl font-bold font-mono-data text-white mb-1">
                           {index.currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
-                        <div className={`flex items-center gap-1 text-xs font-semibold ${isPositive ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                        <div className={`flex items-center gap-1 text-xs font-semibold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
                           {isPositive ? (
                             <ArrowUpRight className="size-3.5" />
                           ) : (
@@ -456,27 +456,27 @@ export function DashboardPage() {
       >
         {/* Stat 1 - Total Balance */}
         <motion.div variants={staggerItem}>
-          <Card className="bg-tp-surface shadow-md rounded-xl border-l-4 border-l-tp-primary border-y border-r border-y-tp-outline-variant/10 border-r-tp-outline-variant/10">
+          <Card className="bg-[#111827] border border-[#1f2937] rounded-xl border-l-4 border-l-amber-500">
             <CardContent className="p-5">
-              <p className="text-xs font-semibold text-tp-on-surface-variant tracking-wider uppercase mb-2">
+              <p className="text-xs font-semibold text-gray-400 tracking-wider uppercase mb-2">
                 Total Balance
               </p>
               {portfolioLoading ? (
-                <Skeleton className="h-8 w-40 mb-2" />
+                <Skeleton className="h-8 w-40 mb-2 bg-[#1f2937]" />
               ) : (
                 <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold font-mono-data text-tp-on-surface">
+                  <span className="text-2xl font-bold font-mono-data text-white">
                     {formatINRWhole(totalBalance)}
                   </span>
-                  <span className="text-xs text-tp-on-surface-variant">
+                  <span className="text-xs text-gray-400">
                     .{Math.abs(totalBalance % 1).toFixed(2).substring(2)}
                   </span>
                 </div>
               )}
               {portfolioLoading ? (
-                <Skeleton className="h-4 w-32 mt-2" />
+                <Skeleton className="h-4 w-32 mt-2 bg-[#1f2937]" />
               ) : (
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-medium text-tp-secondary">
+                <div className="mt-2 flex items-center gap-1 text-[11px] font-medium text-emerald-500">
                   <ChevronsUp className="size-3.5" />
                   <span>{portfolioData.totalReturn >= 0 ? '+' : ''}{portfolioData.totalReturn.toFixed(2)}% from start</span>
                 </div>
@@ -487,26 +487,26 @@ export function DashboardPage() {
 
         {/* Stat 2 - Today's P&L */}
         <motion.div variants={staggerItem}>
-          <Card className="bg-tp-surface shadow-md rounded-xl border-l-4 border-l-tp-secondary border-y border-r border-y-tp-outline-variant/10 border-r-tp-outline-variant/10">
+          <Card className={`bg-[#111827] border border-[#1f2937] rounded-xl border-l-4 ${dayPnl >= 0 ? 'border-l-emerald-500' : 'border-l-red-500'}`}>
             <CardContent className="p-5">
-              <p className="text-xs font-semibold text-tp-on-surface-variant tracking-wider uppercase mb-2">
+              <p className="text-xs font-semibold text-gray-400 tracking-wider uppercase mb-2">
                 Today&apos;s P&amp;L
               </p>
               {portfolioLoading ? (
-                <Skeleton className="h-8 w-36 mb-2" />
+                <Skeleton className="h-8 w-36 mb-2 bg-[#1f2937]" />
               ) : (
                 <div className="flex items-baseline gap-1">
-                  <span className={`text-2xl font-bold font-mono-data ${dayPnl >= 0 ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                  <span className={`text-2xl font-bold font-mono-data ${dayPnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                     {dayPnl >= 0 ? '+' : '-'}{formatINR(Math.abs(dayPnl))}
                   </span>
                 </div>
               )}
               {portfolioLoading ? (
-                <Skeleton className="h-2 w-full mt-3" />
+                <Skeleton className="h-2 w-full mt-3 bg-[#1f2937]" />
               ) : (
-                <div className="mt-3 h-1.5 w-full bg-tp-surface-container rounded-full overflow-hidden">
+                <div className="mt-3 h-1.5 w-full bg-[#1f2937] rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-1000 ${dayPnl >= 0 ? 'bg-tp-secondary' : 'bg-tp-tertiary'}`}
+                    className={`h-full rounded-full transition-all duration-1000 ${dayPnl >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`}
                     style={{ width: `${Math.min(100, Math.max(5, Math.abs(dayPnl / (totalBalance || 1)) * 100 * 10))}%` }}
                   />
                 </div>
@@ -517,22 +517,22 @@ export function DashboardPage() {
 
         {/* Stat 3 - Win Rate */}
         <motion.div variants={staggerItem}>
-          <Card className="bg-tp-surface shadow-md rounded-xl border-l-4 border-l-tp-primary-container border-y border-r border-y-tp-outline-variant/10 border-r-tp-outline-variant/10">
+          <Card className="bg-[#111827] border border-[#1f2937] rounded-xl border-l-4 border-l-amber-500">
             <CardContent className="p-5">
-              <p className="text-xs font-semibold text-tp-on-surface-variant tracking-wider uppercase mb-2">
+              <p className="text-xs font-semibold text-gray-400 tracking-wider uppercase mb-2">
                 Win Rate
               </p>
               {portfolioLoading ? (
-                <Skeleton className="h-8 w-20 mb-2" />
+                <Skeleton className="h-8 w-20 mb-2 bg-[#1f2937]" />
               ) : (
-                <div className="text-2xl font-bold font-mono-data text-tp-on-surface">
+                <div className="text-2xl font-bold font-mono-data text-white">
                   {winRate.toFixed(0)}%
                 </div>
               )}
               {portfolioLoading ? (
-                <Skeleton className="h-4 w-32 mt-2" />
+                <Skeleton className="h-4 w-32 mt-2 bg-[#1f2937]" />
               ) : (
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-medium text-tp-on-surface-variant">
+                <div className="mt-2 flex items-center gap-1 text-[11px] font-medium text-gray-400">
                   <Clock className="size-3.5" />
                   <span>Based on last {totalTrades || 50} trades</span>
                 </div>
@@ -543,22 +543,22 @@ export function DashboardPage() {
 
         {/* Stat 4 - Total Trades */}
         <motion.div variants={staggerItem}>
-          <Card className="bg-tp-surface shadow-md rounded-xl border-l-4 border-l-tp-outline border-y border-r border-y-tp-outline-variant/10 border-r-tp-outline-variant/10">
+          <Card className="bg-[#111827] border border-[#1f2937] rounded-xl border-l-4 border-l-gray-500">
             <CardContent className="p-5">
-              <p className="text-xs font-semibold text-tp-on-surface-variant tracking-wider uppercase mb-2">
+              <p className="text-xs font-semibold text-gray-400 tracking-wider uppercase mb-2">
                 Total Trades
               </p>
               {portfolioLoading ? (
-                <Skeleton className="h-8 w-16 mb-2" />
+                <Skeleton className="h-8 w-16 mb-2 bg-[#1f2937]" />
               ) : (
-                <div className="text-2xl font-bold font-mono-data text-tp-on-surface">
+                <div className="text-2xl font-bold font-mono-data text-white">
                   {totalTrades}
                 </div>
               )}
               {portfolioLoading ? (
-                <Skeleton className="h-4 w-24 mt-2" />
+                <Skeleton className="h-4 w-24 mt-2 bg-[#1f2937]" />
               ) : (
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-medium text-tp-primary">
+                <div className="mt-2 flex items-center gap-1 text-[11px] font-medium text-amber-500">
                   <Rocket className="size-3.5" />
                   <span>{displayPositions.length} open positions</span>
                 </div>
@@ -568,23 +568,23 @@ export function DashboardPage() {
         </motion.div>
       </motion.div>
 
-      {/* ═══ Two Column: Open Positions + Activity ═════════════════════════════ */}
+      {/* ═══ Two Column: Active Positions + Trade Feed ═══════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ── Open Positions Table ──────────────────────────────────────────── */}
+        {/* ── Active Positions Table ──────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
           className="lg:col-span-2"
         >
-          <Card className="bg-tp-surface shadow-md rounded-xl">
+          <Card className="bg-[#111827] border border-[#1f2937] rounded-xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-xl font-semibold text-tp-on-surface">Open Positions</h3>
+                <h3 className="text-xl font-semibold text-white">Active Positions</h3>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-tp-primary text-xs font-semibold hover:underline px-0"
+                  className="text-amber-500 text-xs font-semibold hover:underline px-0"
                   onClick={() => setCurrentPage('portfolio')}
                 >
                   VIEW PORTFOLIO
@@ -595,26 +595,26 @@ export function DashboardPage() {
                 <div className="space-y-4">
                   {Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="flex items-center justify-between">
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-4 w-20" />
-                      <Skeleton className="h-4 w-20" />
-                      <Skeleton className="h-6 w-24" />
-                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-4 w-24 bg-[#1f2937]" />
+                      <Skeleton className="h-4 w-20 bg-[#1f2937]" />
+                      <Skeleton className="h-4 w-20 bg-[#1f2937]" />
+                      <Skeleton className="h-6 w-24 bg-[#1f2937]" />
+                      <Skeleton className="h-4 w-16 bg-[#1f2937]" />
                     </div>
                   ))}
                 </div>
               ) : displayPositions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="size-12 rounded-full bg-tp-surface-container flex items-center justify-center mb-3">
-                    <Briefcase className="size-6 text-tp-on-surface-variant/40" />
+                  <div className="size-12 rounded-full bg-[#1f2937] flex items-center justify-center mb-3">
+                    <Briefcase className="size-6 text-gray-400/40" />
                   </div>
-                  <p className="text-tp-on-surface-variant font-medium text-sm">No open positions</p>
-                  <p className="text-tp-on-surface-variant/60 text-xs mt-1">
+                  <p className="text-gray-400 font-medium text-sm">No open positions</p>
+                  <p className="text-gray-400/60 text-xs mt-1">
                     Start trading to see your positions here
                   </p>
                   <Button
                     size="sm"
-                    className="mt-4 gap-1.5 bg-tp-primary hover:bg-tp-primary/90"
+                    className="mt-4 gap-1.5 bg-amber-500 hover:bg-amber-600 text-black font-semibold"
                     onClick={() => setCurrentPage('trading')}
                   >
                     <Plus className="size-3.5" />
@@ -625,25 +625,25 @@ export function DashboardPage() {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="hover:bg-transparent border-b border-tp-outline-variant/30">
-                        <TableHead className="text-xs font-semibold text-tp-on-surface-variant tracking-wider uppercase pb-4">
+                      <TableRow className="hover:bg-transparent border-b border-[#1f2937]">
+                        <TableHead className="text-xs font-semibold text-gray-400 tracking-wider uppercase pb-4">
                           Instrument
                         </TableHead>
-                        <TableHead className="text-xs font-semibold text-tp-on-surface-variant tracking-wider uppercase pb-4">
+                        <TableHead className="text-xs font-semibold text-gray-400 tracking-wider uppercase pb-4">
                           LTP
                         </TableHead>
-                        <TableHead className="text-xs font-semibold text-tp-on-surface-variant tracking-wider uppercase pb-4">
+                        <TableHead className="text-xs font-semibold text-gray-400 tracking-wider uppercase pb-4">
                           Avg. Cost
                         </TableHead>
-                        <TableHead className="text-xs font-semibold text-tp-on-surface-variant tracking-wider uppercase pb-4">
+                        <TableHead className="text-xs font-semibold text-gray-400 tracking-wider uppercase pb-4">
                           P&amp;L
                         </TableHead>
-                        <TableHead className="text-xs font-semibold text-tp-on-surface-variant tracking-wider uppercase pb-4">
+                        <TableHead className="text-xs font-semibold text-gray-400 tracking-wider uppercase pb-4">
                           Chg %
                         </TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody className="divide-y divide-tp-outline-variant/10">
+                    <TableBody className="divide-y divide-[#1f2937]">
                       {displayPositions.slice(0, 5).map((pos) => {
                         const pnlValue = pos.unrealizedPnl
                         const pnlPercent = pos.unrealizedPnlPercent
@@ -659,30 +659,30 @@ export function DashboardPage() {
                         return (
                           <TableRow
                             key={pos.id}
-                            className="hover:bg-tp-surface-container-low transition-colors cursor-pointer"
+                            className="hover:bg-[#1f2937]/50 transition-colors cursor-pointer"
                           >
                             <TableCell className="py-4">
                               <div className="flex flex-col">
-                                <span className="font-bold text-sm text-tp-on-surface">{instrumentLabel}</span>
-                                <span className="text-xs text-tp-on-surface-variant">{subLabel}</span>
+                                <span className="font-bold text-sm text-white">{instrumentLabel}</span>
+                                <span className="text-xs text-gray-400">{subLabel}</span>
                               </div>
                             </TableCell>
-                            <TableCell className="py-4 font-mono-data text-sm text-tp-on-surface">
+                            <TableCell className="py-4 font-mono-data text-sm text-white">
                               {pos.currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </TableCell>
-                            <TableCell className="py-4 font-mono-data text-sm text-tp-on-surface-variant">
+                            <TableCell className="py-4 font-mono-data text-sm text-gray-400">
                               {pos.entryPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </TableCell>
                             <TableCell className="py-4">
                               <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
                                 isPositive
-                                  ? 'bg-tp-secondary-container text-tp-on-secondary-container'
-                                  : 'bg-tp-error-container text-tp-on-error-container'
+                                  ? 'bg-emerald-500/10 text-emerald-500'
+                                  : 'bg-red-500/10 text-red-500'
                               }`}>
                                 {isPositive ? '+' : '-'}{formatINR(Math.abs(pnlValue))}
                               </span>
                             </TableCell>
-                            <TableCell className={`py-4 font-mono-data text-sm font-medium ${isPositive ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                            <TableCell className={`py-4 font-mono-data text-sm font-medium ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
                               {isPositive ? '+' : ''}{pnlPercent.toFixed(2)}%
                             </TableCell>
                           </TableRow>
@@ -696,17 +696,17 @@ export function DashboardPage() {
           </Card>
         </motion.div>
 
-        {/* ── Activity Feed ─────────────────────────────────────────────────── */}
+        {/* ── Trade Feed ─────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
         >
-          <Card className="bg-tp-surface shadow-md rounded-xl">
+          <Card className="bg-[#111827] border border-[#1f2937] rounded-xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-xl font-semibold text-tp-on-surface">Activity</h3>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-tp-on-surface-variant hover:text-tp-on-surface">
+                <h3 className="text-xl font-semibold text-white">Trade Feed</h3>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-white">
                   <MoreVertical className="size-4" />
                 </Button>
               </div>
@@ -715,28 +715,28 @@ export function DashboardPage() {
                 <div className="space-y-6">
                   {Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="flex gap-3">
-                      <Skeleton className="size-8 rounded-full shrink-0" />
+                      <Skeleton className="size-8 rounded-full shrink-0 bg-[#1f2937]" />
                       <div className="space-y-1.5 flex-1">
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-3 w-48" />
+                        <Skeleton className="h-4 w-32 bg-[#1f2937]" />
+                        <Skeleton className="h-3 w-48 bg-[#1f2937]" />
                       </div>
                     </div>
                   ))}
                 </div>
               ) : displayTrades.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="size-12 rounded-full bg-tp-surface-container flex items-center justify-center mb-3">
-                    <Clock className="size-6 text-tp-on-surface-variant/40" />
+                  <div className="size-12 rounded-full bg-[#1f2937] flex items-center justify-center mb-3">
+                    <Clock className="size-6 text-gray-400/40" />
                   </div>
-                  <p className="text-tp-on-surface-variant font-medium text-sm">No activity yet</p>
-                  <p className="text-tp-on-surface-variant/60 text-xs mt-1">
+                  <p className="text-gray-400 font-medium text-sm">No activity yet</p>
+                  <p className="text-gray-400/60 text-xs mt-1">
                     Your trade history will appear here
                   </p>
                 </div>
               ) : (
                 <div className="relative">
                   {/* Timeline line */}
-                  <div className="absolute left-4 top-2 bottom-2 w-px bg-tp-outline-variant/30" />
+                  <div className="absolute left-4 top-2 bottom-2 w-px bg-[#1f2937]" />
 
                   <div className="space-y-6">
                     {displayTrades.slice(0, 5).map((trade) => {
@@ -752,16 +752,16 @@ export function DashboardPage() {
 
                       if (isCancelled || isPending) {
                         IconComponent = Hourglass
-                        iconBg = 'bg-tp-surface-container-high'
-                        iconText = 'text-tp-on-surface-variant'
+                        iconBg = 'bg-[#1f2937]'
+                        iconText = 'text-gray-400'
                       } else if (isBuy) {
                         IconComponent = ShoppingCart
-                        iconBg = 'bg-tp-secondary-container'
-                        iconText = 'text-tp-on-secondary-container'
+                        iconBg = 'bg-emerald-500/10'
+                        iconText = 'text-emerald-500'
                       } else {
                         IconComponent = ArrowUpFromLine
-                        iconBg = 'bg-tp-error-container'
-                        iconText = 'text-tp-on-error-container'
+                        iconBg = 'bg-red-500/10'
+                        iconText = 'text-red-500'
                       }
 
                       // Label
@@ -783,23 +783,23 @@ export function DashboardPage() {
                       return (
                         <div key={trade.id} className="relative pl-10">
                           {/* Timeline dot */}
-                          <div className={`absolute left-0 top-1 size-8 rounded-full ${iconBg} flex items-center justify-center ${iconText} z-10 border-4 border-tp-surface`}>
+                          <div className={`absolute left-0 top-1 size-8 rounded-full ${iconBg} flex items-center justify-center ${iconText} z-10 border-4 border-[#111827]`}>
                             <IconComponent className="size-3.5" />
                           </div>
 
                           {/* Content */}
                           <div className="flex flex-col">
                             <div className="flex justify-between items-start">
-                              <span className="font-bold text-sm text-tp-on-surface">{actionLabel}</span>
-                              <span className="text-[10px] font-semibold text-tp-on-surface-variant uppercase">
+                              <span className="font-bold text-sm text-white">{actionLabel}</span>
+                              <span className="text-[10px] font-semibold text-gray-400 uppercase">
                                 {formatTimeOfDay(trade.executedAt)}
                               </span>
                             </div>
-                            <p className="text-xs text-tp-on-surface-variant mt-0.5">
+                            <p className="text-xs text-gray-400 mt-0.5">
                               {trade.quantity} Shares @ {formatINR(trade.fillPrice)} • {statusText}
                             </p>
                             {trade.pnl !== null && trade.pnl !== undefined && (
-                              <span className={`text-xs font-semibold mt-0.5 ${trade.pnl >= 0 ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                              <span className={`text-xs font-semibold mt-0.5 ${trade.pnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                                 P&L: {trade.pnl >= 0 ? '+' : ''}{formatINR(trade.pnl)}
                               </span>
                             )}
@@ -811,7 +811,7 @@ export function DashboardPage() {
 
                   <Button
                     variant="outline"
-                    className="w-full mt-6 py-2.5 rounded-lg border-tp-outline-variant/30 text-tp-on-surface-variant text-xs font-semibold hover:bg-tp-surface-container-low transition-all"
+                    className="w-full mt-6 py-2.5 rounded-lg border-[#1f2937] text-gray-400 text-xs font-semibold hover:bg-[#1f2937]/50 transition-all"
                     onClick={() => setCurrentPage('orders')}
                   >
                     VIEW ALL ACTIVITY
@@ -830,20 +830,20 @@ export function DashboardPage() {
         transition={{ delay: 0.5, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
         className="grid grid-cols-1 sm:grid-cols-3 gap-4"
       >
-        {/* AI Market Insights */}
-        <Card className="glass-card rounded-xl shadow-sm group hover:shadow-md transition-all duration-300">
+        {/* Smart Analytics */}
+        <Card className="bg-[#111827] border border-[#1f2937] rounded-xl shadow-sm group hover:shadow-md hover:border-amber-500/20 transition-all duration-300">
           <CardContent className="p-6">
-            <div className="size-10 rounded-xl bg-tp-primary/10 flex items-center justify-center mb-4 group-hover:bg-tp-primary/20 transition-colors">
-              <BarChart3 className="size-5 text-tp-primary" />
+            <div className="size-10 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4 group-hover:bg-amber-500/20 transition-colors">
+              <BarChart3 className="size-5 text-amber-500" />
             </div>
-            <h3 className="font-semibold text-tp-on-surface text-base">AI Market Insights</h3>
-            <p className="text-sm text-tp-on-surface-variant mt-1.5 leading-relaxed">
+            <h3 className="font-semibold text-white text-base">Smart Analytics</h3>
+            <p className="text-sm text-gray-400 mt-1.5 leading-relaxed">
               Get real-time AI-powered analysis of market trends and opportunities.
             </p>
             <Button
               variant="outline"
               size="sm"
-              className="mt-4 gap-1.5 text-tp-primary border-tp-primary/30 hover:bg-tp-primary/10 hover:text-tp-primary spring-interaction"
+              className="mt-4 gap-1.5 text-amber-500 border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-500"
               onClick={() => setCurrentPage('reports')}
             >
               Explore
@@ -852,20 +852,20 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Risk Analysis */}
-        <Card className="glass-card rounded-xl shadow-sm group hover:shadow-md transition-all duration-300">
+        {/* Risk Monitor */}
+        <Card className="bg-[#111827] border border-[#1f2937] rounded-xl shadow-sm group hover:shadow-md hover:border-red-500/20 transition-all duration-300">
           <CardContent className="p-6">
-            <div className="size-10 rounded-xl bg-tp-tertiary/10 flex items-center justify-center mb-4 group-hover:bg-tp-tertiary/20 transition-colors">
-              <Shield className="size-5 text-tp-tertiary" />
+            <div className="size-10 rounded-xl bg-red-500/10 flex items-center justify-center mb-4 group-hover:bg-red-500/20 transition-colors">
+              <Shield className="size-5 text-red-500" />
             </div>
-            <h3 className="font-semibold text-tp-on-surface text-base">Risk Analysis</h3>
-            <p className="text-sm text-tp-on-surface-variant mt-1.5 leading-relaxed">
+            <h3 className="font-semibold text-white text-base">Risk Monitor</h3>
+            <p className="text-sm text-gray-400 mt-1.5 leading-relaxed">
               Monitor your portfolio risk exposure with advanced analytics and alerts.
             </p>
             <Button
               variant="outline"
               size="sm"
-              className="mt-4 gap-1.5 text-tp-tertiary border-tp-tertiary/30 hover:bg-tp-tertiary/10 hover:text-tp-tertiary spring-interaction"
+              className="mt-4 gap-1.5 text-red-500 border-red-500/30 hover:bg-red-500/10 hover:text-red-500"
               onClick={() => setCurrentPage('reports')}
             >
               Analyze
@@ -874,20 +874,20 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Strategy Builder */}
-        <Card className="glass-card rounded-xl shadow-sm group hover:shadow-md transition-all duration-300">
+        {/* Strategy Lab */}
+        <Card className="bg-[#111827] border border-[#1f2937] rounded-xl shadow-sm group hover:shadow-md hover:border-emerald-500/20 transition-all duration-300">
           <CardContent className="p-6">
-            <div className="size-10 rounded-xl bg-tp-secondary/10 flex items-center justify-center mb-4 group-hover:bg-tp-secondary/20 transition-colors">
-              <Zap className="size-5 text-tp-secondary" />
+            <div className="size-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4 group-hover:bg-emerald-500/20 transition-colors">
+              <Zap className="size-5 text-emerald-500" />
             </div>
-            <h3 className="font-semibold text-tp-on-surface text-base">Strategy Builder</h3>
-            <p className="text-sm text-tp-on-surface-variant mt-1.5 leading-relaxed">
+            <h3 className="font-semibold text-white text-base">Strategy Lab</h3>
+            <p className="text-sm text-gray-400 mt-1.5 leading-relaxed">
               Create and backtest custom trading strategies with intuitive tools.
             </p>
             <Button
               variant="outline"
               size="sm"
-              className="mt-4 gap-1.5 text-tp-secondary border-tp-secondary/30 hover:bg-tp-secondary/10 hover:text-tp-secondary spring-interaction"
+              className="mt-4 gap-1.5 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-500"
               onClick={() => setCurrentPage('optionChain')}
             >
               Build
@@ -913,7 +913,7 @@ export function DashboardPage() {
             transition={{ delay: 0.8, type: 'spring', stiffness: 260, damping: 20 }}
           >
             <Button
-              className="flex items-center gap-3 px-6 py-3 bg-tp-primary text-tp-on-primary rounded-full shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all group"
+              className="flex items-center gap-3 px-6 py-3 bg-amber-500 text-black rounded-full shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all group font-semibold"
               onClick={() => setCurrentPage('trading')}
             >
               <Plus className="size-5 group-hover:rotate-90 transition-transform duration-300" />

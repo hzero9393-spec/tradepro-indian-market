@@ -166,8 +166,8 @@ export default function PortfolioPage() {
 
   // Allocation data from real positions
   const allocationData = portfolio ? [
-    { name: 'Equity', value: portfolio.totalCurrentValue, color: '#0058be' },
-    { name: 'Cash', value: portfolio.virtualBalance, color: '#c2c6d6' },
+    { name: 'Equity', value: portfolio.totalCurrentValue, color: '#f59e0b' },
+    { name: 'Cash', value: portfolio.virtualBalance, color: '#374151' },
   ].filter(d => d.value > 0) : []
 
   const allocationTotal = allocationData.reduce((s, d) => s + d.value, 0)
@@ -180,19 +180,19 @@ export default function PortfolioPage() {
   const totalReturn = portfolio?.totalReturn ?? 0
 
   return (
-    <div className="min-h-screen bg-tp-surface p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-[#0a0e17] p-4 sm:p-6 lg:p-8">
       {/* ── Page Header ───────────────────────────────────── */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-tp-on-surface sm:text-3xl">
-            Portfolio Overview
+          <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            Portfolio Tracker
           </h1>
-          <p className="mt-1 text-sm text-tp-on-surface-variant">
-            Real-time performance tracking for your paper trading assets.
+          <p className="mt-1 text-sm text-gray-400">
+            Monitor your holdings, allocation, and returns in real-time.
           </p>
         </div>
         <Button
-          className="gap-1.5 rounded-lg bg-tp-primary text-tp-on-primary shadow-md hover:shadow-lg active:scale-[0.98]"
+          className="gap-1.5 rounded-lg bg-amber-500 text-black font-semibold shadow-md hover:bg-amber-400 active:scale-[0.98]"
           onClick={() => setCurrentPage('trading')}
         >
           <TrendingUp className="size-4" />
@@ -203,7 +203,7 @@ export default function PortfolioPage() {
       {loading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="glass-card rounded-xl shadow-sm border-l-4 border-l-tp-primary">
+            <Card key={i} className="rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-sm border-l-4 border-l-amber-500">
               <CardContent className="p-6">
                 <Skeleton className="h-4 w-24 mb-3" />
                 <Skeleton className="h-8 w-36 mb-2" />
@@ -218,19 +218,19 @@ export default function PortfolioPage() {
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {/* Total Value */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}>
-              <Card className="glass-card rounded-xl border-l-4 border-l-tp-primary shadow-md">
+              <Card className="rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-md border-l-4 border-l-amber-500">
                 <CardContent className="p-6">
                   <div className="mb-2 flex items-start justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                       Total Value
                     </p>
-                    <Landmark className="size-5 text-tp-primary" />
+                    <Landmark className="size-5 text-amber-500" />
                   </div>
-                  <h3 className="font-mono-data text-2xl font-bold text-tp-on-surface">
+                  <h3 className="font-mono-data text-2xl font-bold text-white">
                     {formatINRWhole(totalValue)}
                     <span className="text-lg opacity-50">.{Math.abs(totalValue % 1).toFixed(2).substring(2)}</span>
                   </h3>
-                  <div className={`mt-2 flex items-center gap-1 text-xs font-semibold ${totalReturn >= 0 ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                  <div className={`mt-2 flex items-center gap-1 text-xs font-semibold ${totalReturn >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                     {totalReturn >= 0 ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}
                     {totalReturn >= 0 ? '+' : ''}{totalReturn.toFixed(2)}% from start
                   </div>
@@ -240,19 +240,19 @@ export default function PortfolioPage() {
 
             {/* Invested Amount */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-              <Card className="glass-card rounded-xl border-l-4 border-l-tp-outline-variant shadow-md">
+              <Card className="rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-md border-l-4 border-l-gray-500">
                 <CardContent className="p-6">
                   <div className="mb-2 flex items-start justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                       Invested Amount
                     </p>
-                    <IndianRupee className="size-5 text-tp-outline" />
+                    <IndianRupee className="size-5 text-gray-400" />
                   </div>
-                  <h3 className="font-mono-data text-2xl font-bold text-tp-on-surface">
+                  <h3 className="font-mono-data text-2xl font-bold text-white">
                     {formatINRWhole(investedAmount)}
                     {investedAmount % 1 > 0 && <span className="text-lg opacity-50">.{Math.abs(investedAmount % 1).toFixed(2).substring(2)}</span>}
                   </h3>
-                  <div className="mt-2 flex items-center gap-1 text-xs font-semibold text-tp-on-surface-variant">
+                  <div className="mt-2 flex items-center gap-1 text-xs font-semibold text-gray-400">
                     {positions.length} position{positions.length !== 1 ? 's' : ''} active
                   </div>
                 </CardContent>
@@ -261,18 +261,18 @@ export default function PortfolioPage() {
 
             {/* Unrealized P&L */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-              <Card className="glass-card rounded-xl border-l-4 border-l-tp-secondary shadow-md">
+              <Card className="rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-md border-l-4 border-l-emerald-500">
                 <CardContent className="p-6">
                   <div className="mb-2 flex items-start justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                       Unrealized P&amp;L
                     </p>
-                    {unrealizedPnl >= 0 ? <TrendingUp className="size-5 text-tp-secondary" /> : <TrendingDown className="size-5 text-tp-tertiary" />}
+                    {unrealizedPnl >= 0 ? <TrendingUp className="size-5 text-emerald-500" /> : <TrendingDown className="size-5 text-red-500" />}
                   </div>
-                  <h3 className={`font-mono-data text-2xl font-bold ${unrealizedPnl >= 0 ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                  <h3 className={`font-mono-data text-2xl font-bold ${unrealizedPnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                     {unrealizedPnl >= 0 ? '+' : '-'}{formatINR(Math.abs(unrealizedPnl))}
                   </h3>
-                  <div className={`mt-2 flex items-center gap-1 text-xs font-semibold ${unrealizedPnl >= 0 ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                  <div className={`mt-2 flex items-center gap-1 text-xs font-semibold ${unrealizedPnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                     {unrealizedPnl >= 0 ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
                     {investedAmount > 0 ? ((unrealizedPnl / investedAmount) * 100).toFixed(2) : '0.00'}% ROI
                   </div>
@@ -282,18 +282,18 @@ export default function PortfolioPage() {
 
             {/* Realized P&L */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-              <Card className="glass-card rounded-xl border-l-4 border-l-tp-tertiary shadow-md">
+              <Card className="rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-md border-l-4 border-l-red-500">
                 <CardContent className="p-6">
                   <div className="mb-2 flex items-start justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                       Realized P&amp;L
                     </p>
-                    <Wallet className="size-5 text-tp-tertiary" />
+                    <Wallet className="size-5 text-red-500" />
                   </div>
-                  <h3 className={`font-mono-data text-2xl font-bold ${realizedPnl >= 0 ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                  <h3 className={`font-mono-data text-2xl font-bold ${realizedPnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                     {realizedPnl >= 0 ? '+' : '-'}{formatINR(Math.abs(realizedPnl))}
                   </h3>
-                  <div className={`mt-2 flex items-center gap-1 text-xs font-semibold ${realizedPnl >= 0 ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                  <div className={`mt-2 flex items-center gap-1 text-xs font-semibold ${realizedPnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                     {realizedPnl >= 0 ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
                     From closed positions
                   </div>
@@ -303,28 +303,28 @@ export default function PortfolioPage() {
           </div>
 
           {/* ── Detailed Holdings Table ───────────────────────── */}
-          <section className="glass-card mb-6 overflow-hidden rounded-xl border border-tp-outline-variant/30 shadow-md">
-            <div className="flex items-center justify-between border-b border-tp-outline-variant/20 px-6 py-4">
-              <h4 className="text-lg font-semibold text-tp-on-surface sm:text-xl">
-                Open Positions
+          <section className="mb-6 overflow-hidden rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-md">
+            <div className="flex items-center justify-between border-b border-[#1f2937]/40 px-6 py-4">
+              <h4 className="text-lg font-semibold text-white sm:text-xl">
+                Active Holdings
               </h4>
-              <Badge variant="secondary" className="bg-tp-primary/10 text-tp-primary border-0 text-xs font-semibold">
+              <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-0 text-xs font-semibold">
                 {positions.length} Active
               </Badge>
             </div>
 
             {positions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="size-14 rounded-full bg-tp-surface-container flex items-center justify-center mb-4">
-                  <Briefcase className="size-7 text-tp-on-surface-variant/40" />
+                <div className="size-14 rounded-full bg-[#0d111c] flex items-center justify-center mb-4">
+                  <Briefcase className="size-7 text-gray-400/40" />
                 </div>
-                <p className="text-tp-on-surface-variant font-medium text-sm">No open positions yet</p>
-                <p className="text-tp-on-surface-variant/60 text-xs mt-1">
+                <p className="text-gray-400 font-medium text-sm">No open positions yet</p>
+                <p className="text-gray-400/60 text-xs mt-1">
                   Start trading to see your positions here
                 </p>
                 <Button
                   size="sm"
-                  className="mt-4 gap-1.5 bg-tp-primary hover:bg-tp-primary/90"
+                  className="mt-4 gap-1.5 bg-amber-500 text-black font-semibold hover:bg-amber-400"
                   onClick={() => setCurrentPage('trading')}
                 >
                   <TrendingUp className="size-3.5" />
@@ -335,32 +335,32 @@ export default function PortfolioPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-tp-surface-container-low/50 hover:bg-tp-surface-container-low/50">
-                      <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                    <TableRow className="bg-[#0d111c]/60 hover:bg-[#0d111c]/60">
+                      <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                         Symbol
                       </TableHead>
-                      <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                      <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                         Direction
                       </TableHead>
-                      <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                      <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                         Segment
                       </TableHead>
-                      <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                      <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                         Qty
                       </TableHead>
-                      <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                      <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                         Avg. Price
                       </TableHead>
-                      <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                      <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                         LTP
                       </TableHead>
-                      <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                      <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                         P&amp;L (%)
                       </TableHead>
-                      <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                      <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                         P&amp;L (₹)
                       </TableHead>
-                      <TableHead className="text-center text-[11px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                      <TableHead className="text-center text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                         Action
                       </TableHead>
                     </TableRow>
@@ -375,13 +375,13 @@ export default function PortfolioPage() {
                       return (
                         <TableRow
                           key={pos.id}
-                          className="transition-colors hover:bg-tp-surface-container-low/50"
+                          className="transition-colors hover:bg-[#0d111c]/60 border-[#1f2937]/30"
                         >
                           <TableCell>
                             <div className="flex flex-col">
-                              <span className="text-sm font-bold text-tp-primary">{pos.symbol}</span>
+                              <span className="text-sm font-bold text-amber-500">{pos.symbol}</span>
                               {pos.segment === 'OPTIONS' && pos.strikePrice && (
-                                <span className="text-[10px] uppercase text-tp-on-surface-variant">
+                                <span className="text-[10px] uppercase text-gray-400">
                                   {pos.strikePrice} {pos.optionType}
                                 </span>
                               )}
@@ -391,32 +391,32 @@ export default function PortfolioPage() {
                             <Badge
                               variant="secondary"
                               className={`text-[10px] font-semibold border-0 gap-0.5 ${
-                                isLong ? 'bg-tp-secondary/10 text-tp-secondary' : 'bg-tp-tertiary/10 text-tp-tertiary'
+                                isLong ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
                               }`}
                             >
                               {isLong ? <ArrowUpRight className="size-2.5" /> : <ArrowDownRight className="size-2.5" />}
                               {isLong ? 'Long' : 'Short'}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-xs text-tp-on-surface-variant">{pos.segment}</TableCell>
-                          <TableCell className="text-right font-mono-data text-sm">{pos.quantity}</TableCell>
-                          <TableCell className="text-right font-mono-data text-sm text-tp-on-surface-variant">
+                          <TableCell className="text-xs text-gray-400">{pos.segment}</TableCell>
+                          <TableCell className="text-right font-mono-data text-sm text-white">{pos.quantity}</TableCell>
+                          <TableCell className="text-right font-mono-data text-sm text-gray-400">
                             {formatINR(pos.entryPrice)}
                           </TableCell>
-                          <TableCell className="text-right font-mono-data text-sm">
+                          <TableCell className="text-right font-mono-data text-sm text-white">
                             {formatINR(pos.currentPrice)}
                           </TableCell>
-                          <TableCell className={`text-right font-mono-data text-sm font-semibold ${isPositive ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                          <TableCell className={`text-right font-mono-data text-sm font-semibold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
                             {isPositive ? '+' : ''}{pnlPercent.toFixed(2)}%
                           </TableCell>
-                          <TableCell className={`text-right font-mono-data text-sm font-semibold ${isPositive ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                          <TableCell className={`text-right font-mono-data text-sm font-semibold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
                             {isPositive ? '+' : '-'}{formatINR(Math.abs(pnlValue))}
                           </TableCell>
                           <TableCell className="text-center">
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="rounded border border-tp-tertiary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-tp-tertiary transition-all hover:bg-tp-tertiary hover:text-tp-on-tertiary active:scale-95"
+                              className="rounded border border-orange-500/50 bg-orange-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-orange-500 transition-all hover:bg-orange-500 hover:text-white active:scale-95"
                               disabled={squaringOff === pos.id}
                               onClick={() => handleSquareOff(pos.id, pos.symbol)}
                             >
@@ -438,11 +438,11 @@ export default function PortfolioPage() {
 
           {/* ── Bottom Section: Allocation + Balance ──── */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {/* Portfolio Allocation */}
-            <div className="glass-card rounded-xl p-6 shadow-md lg:col-span-2">
+            {/* Asset Allocation */}
+            <div className="rounded-xl border border-[#1f2937]/60 bg-[#111827] p-6 shadow-md lg:col-span-2">
               <div className="mb-6 flex items-center justify-between">
-                <h4 className="text-lg font-semibold text-tp-on-surface sm:text-xl">
-                  Portfolio Allocation
+                <h4 className="text-lg font-semibold text-white sm:text-xl">
+                  Asset Allocation
                 </h4>
               </div>
               {allocationData.length > 0 && allocationTotal > 0 ? (
@@ -468,21 +468,24 @@ export default function PortfolioPage() {
                         <Tooltip
                           formatter={(value: number) => `₹${value.toLocaleString('en-IN')}`}
                           contentStyle={{
-                            backgroundColor: 'rgba(255,255,255,0.95)',
-                            border: '1px solid #c2c6d6',
+                            backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                            border: '1px solid rgba(31, 41, 55, 0.8)',
                             borderRadius: '8px',
                             fontSize: '12px',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                            color: '#f9fafb',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
                           }}
+                          itemStyle={{ color: '#f9fafb' }}
+                          labelStyle={{ color: '#9ca3af' }}
                         />
                       </PieChart>
                     </ResponsiveContainer>
                     {/* Center Label */}
                     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-xl font-bold leading-none text-tp-on-surface">
+                      <span className="text-xl font-bold leading-none text-white">
                         {investedAmount > 0 && totalValue > 0 ? Math.round((investedAmount / totalValue) * 100) : 0}%
                       </span>
-                      <span className="text-[10px] uppercase text-tp-on-surface-variant">Invested</span>
+                      <span className="text-[10px] uppercase text-gray-400">Invested</span>
                     </div>
                   </div>
 
@@ -494,13 +497,13 @@ export default function PortfolioPage() {
                         <div key={item.name} className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="size-3 rounded-full" style={{ backgroundColor: item.color }} />
-                            <span className="text-xs font-semibold text-tp-on-surface">{item.name}</span>
+                            <span className="text-xs font-semibold text-white">{item.name}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="font-mono-data text-sm text-tp-on-surface">
+                            <span className="font-mono-data text-sm text-white">
                               ₹{item.value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                             </span>
-                            <Badge variant="outline" className="border-tp-outline-variant/30 text-[10px] text-tp-on-surface-variant">
+                            <Badge variant="outline" className="border-[#1f2937]/40 text-[10px] text-gray-400">
                               {percent}%
                             </Badge>
                           </div>
@@ -511,58 +514,58 @@ export default function PortfolioPage() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <p className="text-sm text-tp-on-surface-variant">No allocation data yet</p>
-                  <p className="text-xs text-tp-on-surface-variant/60 mt-1">Start trading to see your portfolio allocation</p>
+                  <p className="text-sm text-gray-400">No allocation data yet</p>
+                  <p className="text-xs text-gray-400/60 mt-1">Start trading to see your portfolio allocation</p>
                 </div>
               )}
             </div>
 
-            {/* Account Summary */}
-            <div className="glass-card rounded-xl p-6 shadow-md">
-              <h4 className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-tp-on-surface-variant">
-                Account Summary
+            {/* Account Details */}
+            <div className="rounded-xl border border-[#1f2937]/60 bg-[#111827] p-6 shadow-md">
+              <h4 className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+                Account Details
               </h4>
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-tp-on-surface-variant">Available Balance</span>
-                  <span className="font-mono-data text-sm font-semibold text-tp-on-surface">
+                  <span className="text-xs font-medium text-gray-400">Available Balance</span>
+                  <span className="font-mono-data text-sm font-semibold text-white">
                     {formatINR(portfolio?.virtualBalance ?? 100000)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-tp-on-surface-variant">Margin Used</span>
-                  <span className="font-mono-data text-sm font-semibold text-tp-on-surface">
+                  <span className="text-xs font-medium text-gray-400">Margin Used</span>
+                  <span className="font-mono-data text-sm font-semibold text-white">
                     {formatINR(portfolio?.marginUsed ?? 0)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-tp-on-surface-variant">Available Margin</span>
-                  <span className="font-mono-data text-sm font-semibold text-tp-on-surface">
+                  <span className="text-xs font-medium text-gray-400">Available Margin</span>
+                  <span className="font-mono-data text-sm font-semibold text-white">
                     {formatINR(portfolio?.availableMargin ?? 100000)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-tp-on-surface-variant">Total Trades</span>
-                  <span className="font-mono-data text-sm font-semibold text-tp-on-surface">
+                  <span className="text-xs font-medium text-gray-400">Total Trades</span>
+                  <span className="font-mono-data text-sm font-semibold text-white">
                     {portfolio?.totalTrades ?? 0}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-tp-on-surface-variant">Open Positions</span>
-                  <span className="font-mono-data text-sm font-semibold text-tp-on-surface">
+                  <span className="text-xs font-medium text-gray-400">Open Positions</span>
+                  <span className="font-mono-data text-sm font-semibold text-white">
                     {portfolio?.openPositionsCount ?? 0}
                   </span>
                 </div>
-                <div className="h-px bg-tp-outline-variant/20 my-1" />
+                <div className="h-px bg-[#1f2937]/30 my-1" />
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-tp-on-surface-variant">Initial Capital</span>
-                  <span className="font-mono-data text-sm font-semibold text-tp-on-surface-variant">
+                  <span className="text-xs font-medium text-gray-400">Initial Capital</span>
+                  <span className="font-mono-data text-sm font-semibold text-gray-400">
                     ₹1,00,000
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-tp-on-surface-variant">Overall P&amp;L</span>
-                  <span className={`font-mono-data text-sm font-bold ${(portfolio?.totalPnl ?? 0) >= 0 ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                  <span className="text-xs font-medium text-gray-400">Overall P&amp;L</span>
+                  <span className={`font-mono-data text-sm font-bold ${(portfolio?.totalPnl ?? 0) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                     {(portfolio?.totalPnl ?? 0) >= 0 ? '+' : '-'}{formatINR(Math.abs(portfolio?.totalPnl ?? 0))}
                   </span>
                 </div>

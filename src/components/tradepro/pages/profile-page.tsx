@@ -128,40 +128,43 @@ export function ProfilePage() {
       label: 'Virtual Balance',
       value: formatINR(portfolio?.virtualBalance ?? user?.virtualBalance ?? initialCapital),
       icon: Wallet,
-      color: 'tp-primary' as const,
+      borderColor: 'border-l-amber-500',
+      textColor: 'text-amber-500',
+      bgColor: 'bg-amber-500/10',
     },
     {
       label: 'Total Trades',
       value: String(portfolio?.totalTrades ?? user?.totalTrades ?? 0),
       icon: BarChart3,
-      color: 'tp-primary' as const,
+      borderColor: 'border-l-amber-500',
+      textColor: 'text-amber-500',
+      bgColor: 'bg-amber-500/10',
     },
     {
       label: 'Total P&L',
       value: `${totalPnl >= 0 ? '+' : '-'}${formatINR(Math.abs(totalPnl))}`,
       icon: totalPnl >= 0 ? TrendingUp : TrendingDown,
-      color: totalPnl >= 0 ? ('tp-secondary' as const) : ('tp-tertiary' as const),
+      borderColor: totalPnl >= 0 ? 'border-l-emerald-500' : 'border-l-red-500',
+      textColor: totalPnl >= 0 ? 'text-emerald-500' : 'text-red-500',
+      bgColor: totalPnl >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10',
     },
     {
       label: 'Win Rate',
       value: `${(user?.winRate ?? 0).toFixed(1)}%`,
       icon: Target,
-      color: (user?.winRate ?? 0) >= 50 ? ('tp-secondary' as const) : ('tp-tertiary' as const),
+      borderColor: (user?.winRate ?? 0) >= 50 ? 'border-l-emerald-500' : 'border-l-red-500',
+      textColor: (user?.winRate ?? 0) >= 50 ? 'text-emerald-500' : 'text-red-500',
+      bgColor: (user?.winRate ?? 0) >= 50 ? 'bg-emerald-500/10' : 'bg-red-500/10',
     },
     {
       label: 'Margin Used',
       value: formatINR(portfolio?.marginUsed ?? user?.marginUsed ?? 0),
       icon: Landmark,
-      color: 'tp-outline' as const,
+      borderColor: 'border-l-gray-500',
+      textColor: 'text-gray-400',
+      bgColor: 'bg-gray-500/10',
     },
   ]
-
-  const colorClasses: Record<string, { bg: string; text: string; border: string }> = {
-    'tp-primary': { bg: 'bg-tp-primary/10', text: 'text-tp-primary', border: 'border-l-tp-primary' },
-    'tp-secondary': { bg: 'bg-tp-secondary/10', text: 'text-tp-secondary', border: 'border-l-tp-secondary' },
-    'tp-tertiary': { bg: 'bg-tp-tertiary/10', text: 'text-tp-tertiary', border: 'border-l-tp-tertiary' },
-    'tp-outline': { bg: 'bg-muted/50', text: 'text-tp-on-surface-variant', border: 'border-l-tp-outline-variant' },
-  }
 
   // ─── Profile Info Items ───────────────────────────────────
   const profileItems = [
@@ -207,16 +210,16 @@ export function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-tp-surface p-4 sm:p-6 lg:p-8 space-y-5">
+      <div className="min-h-screen bg-[#0a0e17] p-4 sm:p-6 lg:p-8 space-y-5">
         <div>
-          <Skeleton className="h-8 w-36 mb-2" />
-          <Skeleton className="h-4 w-56" />
+          <Skeleton className="h-8 w-36 mb-2 bg-[#1f2937]" />
+          <Skeleton className="h-4 w-64 bg-[#1f2937]" />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <Skeleton className="h-80 rounded-xl" />
+          <Skeleton className="h-80 rounded-xl bg-[#1f2937]" />
           <div className="lg:col-span-2 space-y-4">
-            <Skeleton className="h-40 rounded-xl" />
-            <Skeleton className="h-60 rounded-xl" />
+            <Skeleton className="h-40 rounded-xl bg-[#1f2937]" />
+            <Skeleton className="h-60 rounded-xl bg-[#1f2937]" />
           </div>
         </div>
       </div>
@@ -224,14 +227,14 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-tp-surface p-4 sm:p-6 lg:p-8 space-y-5">
+    <div className="min-h-screen bg-[#0a0e17] p-4 sm:p-6 lg:p-8 space-y-5">
       {/* ── Page Header ─────────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-tp-on-surface tracking-tight">
-          Profile & Account
+        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+          My Account
         </h1>
-        <p className="text-tp-on-surface-variant mt-1 text-sm">
-          Your trading account overview and personal information.
+        <p className="text-gray-400 mt-1 text-sm">
+          Manage your account, view stats, and track your trading journey.
         </p>
       </div>
 
@@ -243,35 +246,35 @@ export function ProfilePage() {
           transition={{ delay: 0 }}
           className="lg:row-span-2"
         >
-          <Card className="glass-card rounded-xl shadow-sm h-full">
+          <Card className="rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-sm h-full">
             <CardContent className="p-6">
               {/* Avatar + Name */}
               <div className="flex flex-col items-center text-center mb-6">
-                <div className="size-20 rounded-full bg-tp-primary/10 flex items-center justify-center mb-3">
-                  <span className="text-2xl font-bold text-tp-primary">
+                <div className="size-20 rounded-full bg-amber-500/10 flex items-center justify-center mb-3 ring-2 ring-amber-500/30">
+                  <span className="text-2xl font-bold text-amber-500">
                     {user?.name
                       ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
                       : '??'}
                   </span>
                 </div>
-                <h2 className="text-lg font-bold text-tp-on-surface">{user?.name ?? 'User'}</h2>
-                <p className="text-sm text-tp-on-surface-variant mt-0.5">{user?.email ?? '—'}</p>
+                <h2 className="text-lg font-bold text-white">{user?.name ?? 'User'}</h2>
+                <p className="text-sm text-gray-400 mt-0.5">{user?.email ?? '—'}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <Badge className={`border-0 text-[10px] font-semibold ${
                     user?.subscription === 'PREMIUM'
-                      ? 'bg-tp-secondary/10 text-tp-secondary'
-                      : 'bg-tp-primary/10 text-tp-primary'
+                      ? 'bg-amber-500/10 text-amber-500'
+                      : 'bg-gray-500/10 text-gray-400'
                   }`}>
                     <Crown className="size-3 mr-0.5" />
                     {user?.subscription ?? 'FREE'}
                   </Badge>
-                  <Badge className="border-0 text-[10px] font-semibold bg-tp-primary/10 text-tp-primary">
+                  <Badge className="border-0 text-[10px] font-semibold bg-amber-500/10 text-amber-500">
                     {user?.role ?? 'USER'}
                   </Badge>
                 </div>
               </div>
 
-              <Separator className="mb-4" />
+              <Separator className="bg-[#1f2937]/40 mb-4" />
 
               {/* Profile Details */}
               <div className="space-y-3">
@@ -279,22 +282,22 @@ export function ProfilePage() {
                   const Icon = item.icon
                   return (
                     <div key={item.label} className="flex items-start gap-3">
-                      <div className="size-8 rounded-lg bg-tp-surface-container flex items-center justify-center shrink-0 mt-0.5">
-                        <Icon className="size-4 text-tp-on-surface-variant" />
+                      <div className="size-8 rounded-lg bg-[#0d111c] flex items-center justify-center shrink-0 mt-0.5">
+                        <Icon className="size-4 text-gray-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                           {item.label}
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <p className="text-sm font-medium text-tp-on-surface truncate">
+                          <p className="text-sm font-medium text-white truncate">
                             {item.value}
                           </p>
                           {item.verified && item.label !== 'Member Since' && item.label !== 'Role' && (
-                            <CheckCircle2 className="size-3.5 text-tp-secondary shrink-0" />
+                            <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
                           )}
                           {!item.verified && (item.label === 'Phone' || item.label === 'PAN Number') && (
-                            <AlertCircle className="size-3.5 text-tp-on-surface-variant/40 shrink-0" />
+                            <AlertCircle className="size-3.5 text-gray-400/40 shrink-0" />
                           )}
                         </div>
                       </div>
@@ -303,12 +306,12 @@ export function ProfilePage() {
                 })}
               </div>
 
-              <Separator className="my-4" />
+              <Separator className="bg-[#1f2937]/40 my-4" />
 
               {/* Last Login */}
               <div className="flex items-center justify-between">
-                <span className="text-xs text-tp-on-surface-variant">Last Login</span>
-                <span className="text-xs font-medium text-tp-on-surface">
+                <span className="text-xs text-gray-400">Last Login</span>
+                <span className="text-xs font-medium text-white">
                   {user?.lastLoginAt
                     ? new Date(user.lastLoginAt).toLocaleString('en-IN', {
                         day: '2-digit',
@@ -324,31 +327,31 @@ export function ProfilePage() {
           </Card>
         </motion.div>
 
-        {/* ── Right: Top Section - Capital Overview ──────────── */}
+        {/* ── Right: Top Section - Account Balance ──────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className="lg:col-span-2"
         >
-          <Card className="glass-card rounded-xl shadow-sm border-l-4 border-l-tp-primary">
+          <Card className="rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-sm border-l-4 border-l-amber-500">
             <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-tp-on-surface-variant">
-                    Capital Overview
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+                    Account Balance
                   </p>
-                  <h3 className="font-mono-data text-2xl sm:text-3xl font-bold text-tp-on-surface mt-1">
+                  <h3 className="font-mono-data text-2xl sm:text-3xl font-bold text-white mt-1">
                     {formatINRWhole(currentPortfolioValue)}
                     <span className="text-lg opacity-50">.{Math.abs(currentPortfolioValue % 1).toFixed(2).substring(2)}</span>
                   </h3>
-                  <div className={`mt-2 flex items-center gap-1.5 text-xs font-semibold ${isProfit ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                  <div className={`mt-2 flex items-center gap-1.5 text-xs font-semibold ${isProfit ? 'text-emerald-500' : 'text-red-500'}`}>
                     {isProfit ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
                     {isProfit ? '+' : ''}{totalReturn.toFixed(2)}% overall return
                   </div>
                 </div>
                 <Button
-                  className="gap-1.5 bg-tp-primary text-tp-on-primary shadow-md hover:shadow-lg active:scale-[0.98]"
+                  className="gap-1.5 bg-amber-500 text-black font-semibold shadow-md hover:bg-amber-400 active:scale-[0.98]"
                   onClick={() => setCurrentPage('trading')}
                 >
                   <TrendingUp className="size-4" />
@@ -358,21 +361,21 @@ export function ProfilePage() {
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {/* Initial Capital */}
-                <div className="rounded-xl bg-tp-surface-container-low/50 p-3 border border-tp-outline-variant/20">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                <div className="rounded-xl bg-[#0d111c]/50 p-3 border border-[#1f2937]/30">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                     Initial Capital
                   </p>
-                  <p className="font-mono-data text-base font-bold text-tp-on-surface-variant mt-1">
+                  <p className="font-mono-data text-base font-bold text-gray-400 mt-1">
                     ₹1,00,000
                   </p>
                 </div>
 
                 {/* Current Value */}
-                <div className="rounded-xl bg-tp-surface-container-low/50 p-3 border border-tp-outline-variant/20">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                <div className="rounded-xl bg-[#0d111c]/50 p-3 border border-[#1f2937]/30">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                     Current Value
                   </p>
-                  <p className="font-mono-data text-base font-bold text-tp-on-surface mt-1">
+                  <p className="font-mono-data text-base font-bold text-white mt-1">
                     {formatINRWhole(currentPortfolioValue)}
                   </p>
                 </div>
@@ -380,47 +383,47 @@ export function ProfilePage() {
                 {/* Net P&L */}
                 <div className={`rounded-xl p-3 border ${
                   isProfit
-                    ? 'bg-tp-secondary/5 border-tp-secondary/20'
-                    : 'bg-tp-tertiary/5 border-tp-tertiary/20'
+                    ? 'bg-emerald-500/5 border-emerald-500/20'
+                    : 'bg-red-500/5 border-red-500/20'
                 }`}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                     Net P&L
                   </p>
-                  <p className={`font-mono-data text-base font-bold mt-1 ${isProfit ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                  <p className={`font-mono-data text-base font-bold mt-1 ${isProfit ? 'text-emerald-500' : 'text-red-500'}`}>
                     {isProfit ? '+' : '-'}{formatINR(Math.abs(totalPnl))}
                   </p>
                 </div>
 
                 {/* Realized P&L */}
-                <div className="rounded-xl bg-tp-surface-container-low/50 p-3 border border-tp-outline-variant/20">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                <div className="rounded-xl bg-[#0d111c]/50 p-3 border border-[#1f2937]/30">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                     Realized P&L
                   </p>
                   <p className={`font-mono-data text-base font-bold mt-1 ${
-                    (portfolio?.totalRealizedPnl ?? 0) >= 0 ? 'text-tp-secondary' : 'text-tp-tertiary'
+                    (portfolio?.totalRealizedPnl ?? 0) >= 0 ? 'text-emerald-500' : 'text-red-500'
                   }`}>
                     {(portfolio?.totalRealizedPnl ?? 0) >= 0 ? '+' : '-'}{formatINR(Math.abs(portfolio?.totalRealizedPnl ?? 0))}
                   </p>
                 </div>
 
                 {/* Unrealized P&L */}
-                <div className="rounded-xl bg-tp-surface-container-low/50 p-3 border border-tp-outline-variant/20">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                <div className="rounded-xl bg-[#0d111c]/50 p-3 border border-[#1f2937]/30">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                     Unrealized P&L
                   </p>
                   <p className={`font-mono-data text-base font-bold mt-1 ${
-                    (portfolio?.totalUnrealizedPnl ?? 0) >= 0 ? 'text-tp-secondary' : 'text-tp-tertiary'
+                    (portfolio?.totalUnrealizedPnl ?? 0) >= 0 ? 'text-emerald-500' : 'text-red-500'
                   }`}>
                     {(portfolio?.totalUnrealizedPnl ?? 0) >= 0 ? '+' : '-'}{formatINR(Math.abs(portfolio?.totalUnrealizedPnl ?? 0))}
                   </p>
                 </div>
 
                 {/* Available Margin */}
-                <div className="rounded-xl bg-tp-surface-container-low/50 p-3 border border-tp-outline-variant/20">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                <div className="rounded-xl bg-[#0d111c]/50 p-3 border border-[#1f2937]/30">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                     Available Margin
                   </p>
-                  <p className="font-mono-data text-base font-bold text-tp-on-surface mt-1">
+                  <p className="font-mono-data text-base font-bold text-white mt-1">
                     {formatINR(portfolio?.availableMargin ?? (user?.virtualBalance ?? initialCapital))}
                   </p>
                 </div>
@@ -429,20 +432,20 @@ export function ProfilePage() {
           </Card>
         </motion.div>
 
-        {/* ── Right: Bottom Section - Account Stats ─────────── */}
+        {/* ── Right: Bottom Section - Trading Stats ─────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="lg:col-span-2"
         >
-          <Card className="glass-card rounded-xl shadow-sm">
+          <Card className="rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-sm">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold text-tp-on-surface">
-                  Account Statistics
+                <CardTitle className="text-base font-semibold text-white">
+                  Trading Stats
                 </CardTitle>
-                <Badge variant="secondary" className="bg-tp-primary/10 text-tp-primary border-0 text-xs font-semibold">
+                <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-0 text-xs font-semibold">
                   {portfolio?.openPositionsCount ?? 0} Open Position{(portfolio?.openPositionsCount ?? 0) !== 1 ? 's' : ''}
                 </Badge>
               </div>
@@ -451,24 +454,23 @@ export function ProfilePage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {accountStats.map((stat, idx) => {
                   const Icon = stat.icon
-                  const c = colorClasses[stat.color] || colorClasses['tp-primary']
                   return (
                     <motion.div
                       key={stat.label}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 + idx * 0.05 }}
-                      className={`rounded-xl border border-tp-outline-variant/30 p-3 border-l-4 ${c.border} hover:bg-tp-surface-container-low/30 transition-colors`}
+                      className={`rounded-xl border border-[#1f2937]/40 bg-[#0d111c]/50 p-3 border-l-4 ${stat.borderColor} hover:bg-[#0d111c]/80 transition-colors`}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-[9px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                        <p className="text-[9px] font-semibold uppercase tracking-wider text-gray-400">
                           {stat.label}
                         </p>
-                        <div className={`size-6 rounded-md ${c.bg} flex items-center justify-center`}>
-                          <Icon className={`size-3 ${c.text}`} />
+                        <div className={`size-6 rounded-md ${stat.bgColor} flex items-center justify-center`}>
+                          <Icon className={`size-3 ${stat.textColor}`} />
                         </div>
                       </div>
-                      <p className={`font-mono-data text-sm font-bold ${c.text}`}>
+                      <p className={`font-mono-data text-sm font-bold ${stat.textColor}`}>
                         {stat.value}
                       </p>
                     </motion.div>
@@ -476,13 +478,13 @@ export function ProfilePage() {
                 })}
               </div>
 
-              <Separator className="my-5" />
+              <Separator className="bg-[#1f2937]/40 my-5" />
 
               {/* Account Actions */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   variant="outline"
-                  className="gap-2 border-tp-outline-variant/50 text-tp-on-surface-variant hover:bg-tp-surface-container-low"
+                  className="gap-2 border-[#1f2937]/50 text-gray-400 hover:bg-[#0d111c] hover:text-white"
                   onClick={() => setCurrentPage('reports')}
                 >
                   <BarChart3 className="size-4" />
@@ -490,7 +492,7 @@ export function ProfilePage() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="gap-2 border-tp-outline-variant/50 text-tp-on-surface-variant hover:bg-tp-surface-container-low"
+                  className="gap-2 border-[#1f2937]/50 text-gray-400 hover:bg-[#0d111c] hover:text-white"
                   onClick={() => setCurrentPage('portfolio')}
                 >
                   <Briefcase className="size-4" />
@@ -498,7 +500,7 @@ export function ProfilePage() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="gap-2 border-tp-tertiary/30 text-tp-tertiary hover:bg-tp-tertiary/10"
+                  className="gap-2 border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-400"
                   onClick={handleResetAccount}
                 >
                   <RotateCcw className="size-4" />

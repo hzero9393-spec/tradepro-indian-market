@@ -38,8 +38,6 @@ import {
 } from '@/components/ui/table'
 import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
 
-// ─── Mock Data ────────────────────────────────────────────────────────
-
 const portfolioData = [
   { date: 'Jan', value: 980000, change: 0 },
   { date: 'Feb', value: 1020000, change: 40000 },
@@ -149,40 +147,21 @@ const adjustments = [
 ]
 
 const allocationData = [
-  { name: 'Technology', value: 60, color: '#0058be' },
-  { name: 'Energy', value: 25, color: '#006c49' },
-  { name: 'Finance', value: 15, color: '#b61722' },
+  { name: 'Technology', value: 60, color: '#f59e0b' },
+  { name: 'Energy', value: 25, color: '#10b981' },
+  { name: 'Finance', value: 15, color: '#ef4444' },
 ]
 
-// ─── Chart Configs ────────────────────────────────────────────────────
-
 const areaChartConfig: ChartConfig = {
-  value: {
-    label: 'Portfolio Value',
-    color: '#0058be',
-  },
-  change: {
-    label: 'Change',
-    color: '#006c49',
-  },
+  value: { label: 'Portfolio Value', color: '#f59e0b' },
+  change: { label: 'Change', color: '#10b981' },
 }
 
 const pieChartConfig: ChartConfig = {
-  Technology: {
-    label: 'Technology',
-    color: '#0058be',
-  },
-  Energy: {
-    label: 'Energy',
-    color: '#006c49',
-  },
-  Finance: {
-    label: 'Finance',
-    color: '#b61722',
-  },
+  Technology: { label: 'Technology', color: '#f59e0b' },
+  Energy: { label: 'Energy', color: '#10b981' },
+  Finance: { label: 'Finance', color: '#ef4444' },
 }
-
-// ─── Custom Tooltip for Area Chart ────────────────────────────────────
 
 function CustomAreaTooltip({
   active,
@@ -197,51 +176,43 @@ function CustomAreaTooltip({
   const value = payload[0]?.value
   const change = portfolioData.find((d) => d.date === label)?.change ?? 0
   return (
-    <div className="glass-card rounded-lg px-4 py-3 shadow-xl">
-      <p className="text-muted-foreground text-xs font-medium">{label}</p>
-      <p className="font-mono-data text-foreground text-lg font-semibold">
+    <div className="bg-[#111827] border border-[#1f2937] rounded-lg px-4 py-3 shadow-xl">
+      <p className="text-gray-400 text-xs font-medium">{label}</p>
+      <p className="font-mono text-white text-lg font-semibold">
         ₹{value?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
       </p>
-      <p
-        className={`font-mono-data text-xs font-medium ${
-          change >= 0 ? 'text-tp-secondary' : 'text-tp-tertiary'
-        }`}
-      >
+      <p className={`font-mono text-xs font-medium ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
         {change >= 0 ? '+' : ''}₹{change.toLocaleString('en-IN')}
       </p>
     </div>
   )
 }
 
-// ─── Component ────────────────────────────────────────────────────────
-
 export default function AnalyticsPage() {
   const [activeRange, setActiveRange] = useState<(typeof timeRanges)[number]>('1D')
 
   return (
-    <div className="min-h-screen bg-tp-surface">
+    <div className="min-h-screen bg-[#0a0e17]">
       <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
-        {/* ── Page Header ──────────────────────────────────────────── */}
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-tp-on-surface sm:text-3xl">
+            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
               Performance History
             </h1>
-            <p className="mt-1 text-sm text-tp-on-surface-variant">
+            <p className="mt-1 text-sm text-gray-400">
               Track your portfolio performance and analytics over time
             </p>
           </div>
 
-          {/* Time Range Selector */}
-          <div className="glass-card inline-flex items-center gap-1 rounded-full p-1">
+          <div className="bg-[#111827] border border-[#1f2937] inline-flex items-center gap-1 rounded-full p-1">
             {timeRanges.map((range) => (
               <button
                 key={range}
                 onClick={() => setActiveRange(range)}
                 className={`tab-transition rounded-full px-3 py-1.5 text-xs font-semibold ${
                   activeRange === range
-                    ? 'bg-tp-primary text-tp-on-primary shadow-sm'
-                    : 'text-tp-on-surface-variant hover:bg-tp-surface-container'
+                    ? 'bg-amber-500 text-black shadow-sm'
+                    : 'text-gray-400 hover:bg-[#1a2332]'
                 }`}
               >
                 {range}
@@ -250,150 +221,67 @@ export default function AnalyticsPage() {
           </div>
         </header>
 
-        {/* ── Hero Chart ───────────────────────────────────────────── */}
-        <Card className="glass-card overflow-hidden rounded-2xl border-0 shadow-lg">
+        {/* Hero Chart */}
+        <Card className="bg-[#111827] border border-[#1f2937] overflow-hidden rounded-2xl shadow-lg">
           <CardHeader className="flex flex-row items-start justify-between pb-0">
             <div className="space-y-1">
-              <p className="text-sm font-medium text-tp-on-surface-variant">
-                Portfolio Value
-              </p>
+              <p className="text-sm font-medium text-gray-400">Portfolio Value</p>
               <div className="flex items-baseline gap-3">
-                <span className="font-mono-data text-3xl font-bold text-tp-on-surface sm:text-4xl">
+                <span className="font-mono text-3xl font-bold text-white sm:text-4xl">
                   ₹12,45,670.00
                 </span>
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-tp-secondary/10 px-2 py-0.5 text-xs font-semibold text-tp-secondary">
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-400">
                   <ArrowUpRight className="size-3" />
                   +2.4%
                 </span>
               </div>
             </div>
             <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-8 rounded-lg text-tp-on-surface-variant hover:bg-tp-surface-container"
-              >
+              <Button variant="ghost" size="icon" className="size-8 rounded-lg text-gray-400 hover:bg-[#1a2332]">
                 <Download className="size-4" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-8 rounded-lg text-tp-on-surface-variant hover:bg-tp-surface-container"
-              >
+              <Button variant="ghost" size="icon" className="size-8 rounded-lg text-gray-400 hover:bg-[#1a2332]">
                 <Maximize2 className="size-4" />
               </Button>
             </div>
           </CardHeader>
           <CardContent className="pb-4">
-            <ChartContainer
-              config={areaChartConfig}
-              className="mt-2 h-[320px] w-full sm:h-[380px]"
-            >
-              <AreaChart
-                data={portfolioData}
-                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-              >
+            <ChartContainer config={areaChartConfig} className="mt-2 h-[320px] w-full sm:h-[380px]">
+              <AreaChart data={portfolioData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
-                  <linearGradient
-                    id="portfolioGradient"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="0%" stopColor="#0058be" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#0058be" stopOpacity={0.02} />
+                  <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--color-border)"
-                  opacity={0.4}
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: 'var(--color-muted-foreground)' }}
-                  dy={8}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: 'var(--color-muted-foreground)' }}
-                  tickFormatter={(v: number) =>
-                    `₹${(v / 100000).toFixed(1)}L`
-                  }
-                  width={55}
-                />
-                <RechartsTooltip
-                  content={<CustomAreaTooltip />}
-                  cursor={{
-                    stroke: '#0058be',
-                    strokeWidth: 1,
-                    strokeDasharray: '4 4',
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#0058be"
-                  strokeWidth={2.5}
-                  fill="url(#portfolioGradient)"
-                  dot={false}
-                  activeDot={{
-                    r: 5,
-                    fill: '#0058be',
-                    stroke: '#ffffff',
-                    strokeWidth: 2,
-                  }}
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" opacity={0.4} vertical={false} />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} dy={8} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={(v: number) => `₹${(v / 100000).toFixed(1)}L`} width={55} />
+                <RechartsTooltip content={<CustomAreaTooltip />} cursor={{ stroke: '#f59e0b', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                <Area type="monotone" dataKey="value" stroke="#f59e0b" strokeWidth={2.5} fill="url(#portfolioGradient)" dot={false} activeDot={{ r: 5, fill: '#f59e0b', stroke: '#ffffff', strokeWidth: 2 }} />
               </AreaChart>
             </ChartContainer>
           </CardContent>
         </Card>
 
-        {/* ── Key Performance Metrics ──────────────────────────────── */}
+        {/* Key Performance Metrics */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
           {metrics.map((metric) => {
             const Icon = metric.icon
             const isNegative = !metric.positive
             return (
-              <Card
-                key={metric.label}
-                className="glass-card group rounded-2xl border-0 shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-              >
+              <Card key={metric.label} className="bg-[#111827] border border-[#1f2937] group rounded-2xl shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                 <CardContent className="p-4 sm:p-5">
                   <div className="flex items-center gap-2">
-                    <div
-                      className={`flex size-8 items-center justify-center rounded-lg ${
-                        isNegative
-                          ? 'bg-tp-tertiary/10 text-tp-tertiary'
-                          : 'bg-tp-primary/10 text-tp-primary'
-                      }`}
-                    >
+                    <div className={`flex size-8 items-center justify-center rounded-lg ${isNegative ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-500'}`}>
                       <Icon className="size-4" />
                     </div>
                     {metric.badge && (
-                      <Badge
-                        variant={metric.badgeVariant}
-                        className="text-[10px]"
-                      >
-                        {metric.badge}
-                      </Badge>
+                      <Badge variant={metric.badgeVariant} className="text-[10px]">{metric.badge}</Badge>
                     )}
                   </div>
-                  <p className="mt-3 text-xs font-medium text-tp-on-surface-variant">
-                    {metric.label}
-                  </p>
-                  <p
-                    className={`font-mono-data mt-1 text-lg font-bold ${
-                      isNegative
-                        ? 'text-tp-tertiary'
-                        : 'text-tp-on-surface'
-                    }`}
-                  >
+                  <p className="mt-3 text-xs font-medium text-gray-400">{metric.label}</p>
+                  <p className={`font-mono mt-1 text-lg font-bold ${isNegative ? 'text-red-400' : 'text-white'}`}>
                     {metric.value}
                   </p>
                 </CardContent>
@@ -402,88 +290,47 @@ export default function AnalyticsPage() {
           })}
         </div>
 
-        {/* ── Two-Column: Table + Donut ────────────────────────────── */}
+        {/* Two-Column: Table + Donut */}
         <div className="grid gap-4 lg:grid-cols-3">
-          {/* Left: Recent Portfolio Adjustments */}
-          <Card className="glass-card rounded-2xl border-0 shadow-md lg:col-span-2">
+          <Card className="bg-[#111827] border border-[#1f2937] rounded-2xl shadow-md lg:col-span-2">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-tp-on-surface">
-                Recent Portfolio Adjustments
-              </CardTitle>
+              <CardTitle className="text-base font-semibold text-white">Recent Portfolio Adjustments</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="max-h-96 overflow-y-auto custom-scrollbar">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-tp-outline-variant/50 hover:bg-transparent">
-                      <TableHead className="text-tp-on-surface-variant">
-                        Instrument
-                      </TableHead>
-                      <TableHead className="text-tp-on-surface-variant">
-                        Type
-                      </TableHead>
-                      <TableHead className="text-right text-tp-on-surface-variant">
-                        Quantity
-                      </TableHead>
-                      <TableHead className="text-right text-tp-on-surface-variant">
-                        Exec. Price
-                      </TableHead>
-                      <TableHead className="text-right text-tp-on-surface-variant">
-                        Net Change
-                      </TableHead>
+                    <TableRow className="border-[#1f2937] hover:bg-transparent">
+                      <TableHead className="text-gray-400">Instrument</TableHead>
+                      <TableHead className="text-gray-400">Type</TableHead>
+                      <TableHead className="text-right text-gray-400">Quantity</TableHead>
+                      <TableHead className="text-right text-gray-400">Exec. Price</TableHead>
+                      <TableHead className="text-right text-gray-400">Net Change</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {adjustments.map((adj) => (
-                      <TableRow
-                        key={adj.instrument}
-                        className="border-tp-outline-variant/30 transition-colors"
-                      >
+                      <TableRow key={adj.instrument} className="border-[#1f2937] transition-colors">
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div className="flex size-8 items-center justify-center rounded-lg bg-tp-primary/10 font-mono-data text-xs font-bold text-tp-primary">
+                            <div className="flex size-8 items-center justify-center rounded-lg bg-amber-500/10 font-mono text-xs font-bold text-amber-500">
                               {adj.instrument.slice(0, 2)}
                             </div>
                             <div>
-                              <p className="text-sm font-semibold text-tp-on-surface">
-                                {adj.instrument}
-                              </p>
-                              <p className="text-[11px] text-tp-on-surface-variant">
-                                {adj.name}
-                              </p>
+                              <p className="text-sm font-semibold text-white">{adj.instrument}</p>
+                              <p className="text-[11px] text-gray-400">{adj.name}</p>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={`gap-1 text-[11px] font-semibold ${
-                              adj.type === 'Buy'
-                                ? 'border-tp-secondary/30 bg-tp-secondary/10 text-tp-secondary'
-                                : 'border-tp-tertiary/30 bg-tp-tertiary/10 text-tp-tertiary'
-                            }`}
-                          >
-                            {adj.type === 'Buy' ? (
-                              <ArrowUpRight className="size-3" />
-                            ) : (
-                              <ArrowDownRight className="size-3" />
-                            )}
+                          <Badge variant="outline" className={`gap-1 text-[11px] font-semibold ${adj.type === 'Buy' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-red-500/30 bg-red-500/10 text-red-400'}`}>
+                            {adj.type === 'Buy' ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
                             {adj.type}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right font-mono-data text-sm">
-                          {adj.quantity}
-                        </TableCell>
-                        <TableCell className="text-right font-mono-data text-sm">
-                          {adj.price}
-                        </TableCell>
-                        <TableCell
-                          className={`text-right font-mono-data text-sm font-semibold ${
-                            adj.positive
-                              ? 'text-tp-secondary'
-                              : 'text-tp-tertiary'
-                          }`}
-                        >
+                        <TableCell className="text-right font-mono text-sm text-white">{adj.quantity}</TableCell>
+                        <TableCell className="text-right font-mono text-sm text-white">{adj.price}</TableCell>
+                        <TableCell className={`text-right font-mono text-sm font-semibold ${adj.positive ? 'text-emerald-400' : 'text-red-400'}`}>
                           {adj.change}
                         </TableCell>
                       </TableRow>
@@ -494,81 +341,39 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          {/* Right: Asset Allocation Donut */}
-          <Card className="glass-card rounded-2xl border-0 shadow-md">
+          <Card className="bg-[#111827] border border-[#1f2937] rounded-2xl shadow-md">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-tp-on-surface">
-                Asset Allocation
-              </CardTitle>
+              <CardTitle className="text-base font-semibold text-white">Asset Allocation</CardTitle>
             </CardHeader>
             <CardContent>
-              <ChartContainer
-                config={pieChartConfig}
-                className="mx-auto h-[220px] w-full"
-              >
+              <ChartContainer config={pieChartConfig} className="mx-auto h-[220px] w-full">
                 <PieChart>
-                  <Pie
-                    data={allocationData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={85}
-                    paddingAngle={4}
-                    dataKey="value"
-                    strokeWidth={0}
-                  >
+                  <Pie data={allocationData} cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={4} dataKey="value" strokeWidth={0}>
                     {allocationData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
                   <RechartsTooltip
-                    formatter={(value: number, name: string) => [
-                      `${value}%`,
-                      name,
-                    ]}
-                    contentStyle={{
-                      background: 'rgba(255,255,255,0.9)',
-                      backdropFilter: 'blur(20px)',
-                      border: '1px solid rgba(241,243,245,1)',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                    }}
+                    formatter={(value: number, name: string) => [`${value}%`, name]}
+                    contentStyle={{ background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', fontSize: '12px', color: '#f9fafb' }}
                   />
                 </PieChart>
               </ChartContainer>
 
-              {/* Center Label (overlaid) */}
               <div className="relative -mt-[140px] flex flex-col items-center pb-[60px]">
-                <span className="font-mono-data text-2xl font-bold text-tp-on-surface">
-                  3
-                </span>
-                <span className="text-[11px] font-medium text-tp-on-surface-variant">
-                  Sectors
-                </span>
-                <span className="mt-0.5 rounded-full bg-tp-secondary/10 px-2 py-0.5 text-[10px] font-semibold text-tp-secondary">
-                  Balanced
-                </span>
+                <span className="font-mono text-2xl font-bold text-white">3</span>
+                <span className="text-[11px] font-medium text-gray-400">Sectors</span>
+                <span className="mt-0.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">Balanced</span>
               </div>
 
-              {/* Legend */}
               <div className="mt-4 space-y-2">
                 {allocationData.map((item) => (
-                  <div
-                    key={item.name}
-                    className="flex items-center justify-between"
-                  >
+                  <div key={item.name} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div
-                        className="size-2.5 rounded-full"
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <span className="text-sm text-tp-on-surface-variant">
-                        {item.name}
-                      </span>
+                      <div className="size-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span className="text-sm text-gray-400">{item.name}</span>
                     </div>
-                    <span className="font-mono-data text-sm font-semibold text-tp-on-surface">
-                      {item.value}%
-                    </span>
+                    <span className="font-mono text-sm font-semibold text-white">{item.value}%</span>
                   </div>
                 ))}
               </div>
@@ -576,10 +381,9 @@ export default function AnalyticsPage() {
           </Card>
         </div>
 
-        {/* ── Promo Banner ─────────────────────────────────────────── */}
+        {/* Promo Banner */}
         <div className="relative overflow-hidden rounded-2xl shadow-lg">
-          {/* Gradient Background */}
-          <div className="absolute inset-0 bg-gradient-to-r from-tp-primary via-tp-primary/90 to-tp-secondary" />
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-500 via-amber-500/90 to-emerald-500" />
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDUpIi8+PC9zdmc+')] opacity-60" />
 
           <div className="relative flex flex-col items-center gap-4 px-6 py-8 sm:flex-row sm:justify-between sm:px-8 sm:py-6">
@@ -588,16 +392,11 @@ export default function AnalyticsPage() {
                 <Zap className="size-6 text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white sm:text-xl">
-                  Optimize Your Strategy
-                </h3>
-                <p className="mt-0.5 text-sm text-white/80">
-                  Get AI-powered insights and advanced analytics with TradePro
-                  Premium
-                </p>
+                <h3 className="text-lg font-bold text-white sm:text-xl">Optimize Your Strategy</h3>
+                <p className="mt-0.5 text-sm text-white/80">Get AI-powered insights and advanced analytics with StockVerse Premium</p>
               </div>
             </div>
-            <Button className="spring-interaction rounded-full bg-white px-6 font-semibold text-tp-primary shadow-md hover:bg-white/90">
+            <Button className="spring-interaction rounded-full bg-white px-6 font-semibold text-amber-500 shadow-md hover:bg-white/90">
               Upgrade Now
             </Button>
           </div>

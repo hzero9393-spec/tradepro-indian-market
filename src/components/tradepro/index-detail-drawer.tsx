@@ -194,22 +194,22 @@ function CustomTooltip({ active, payload, label, range }: { active?: boolean; pa
   const isUp = d.close >= d.open
 
   return (
-    <div className="glass-card rounded-lg p-3 shadow-xl border border-tp-outline-variant/20 text-xs">
-      <div className="font-semibold text-tp-on-surface mb-1.5">{formatDate(d.date, range)}</div>
+    <div className="bg-[#111827] border border-[#1f2937] rounded-lg p-3 shadow-xl border border-[#1f2937]/20 text-xs">
+      <div className="font-semibold text-white mb-1.5">{formatDate(d.date, range)}</div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-        <span className="text-tp-on-surface-variant">Open</span>
+        <span className="text-gray-400">Open</span>
         <span className="font-mono text-right">{d.open.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-        <span className="text-tp-on-surface-variant">High</span>
+        <span className="text-gray-400">High</span>
         <span className="font-mono text-right">{d.high.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-        <span className="text-tp-on-surface-variant">Low</span>
+        <span className="text-gray-400">Low</span>
         <span className="font-mono text-right">{d.low.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-        <span className="text-tp-on-surface-variant">Close</span>
-        <span className={cn('font-mono text-right font-semibold', isUp ? 'text-tp-secondary' : 'text-tp-tertiary')}>
+        <span className="text-gray-400">Close</span>
+        <span className={cn('font-mono text-right font-semibold', isUp ? 'text-emerald-500' : 'text-red-500')}>
           {d.close.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
         </span>
         {d.volume > 0 && (
           <>
-            <span className="text-tp-on-surface-variant">Volume</span>
+            <span className="text-gray-400">Volume</span>
             <span className="font-mono text-right">{formatNumber(d.volume)}</span>
           </>
         )}
@@ -429,14 +429,14 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-[680px] md:max-w-[780px] lg:max-w-[900px] p-0 gap-0 bg-tp-surface border-l border-tp-outline-variant/20 overflow-y-auto [&>button]:hidden"
+        className="w-full sm:max-w-[680px] md:max-w-[780px] lg:max-w-[900px] p-0 gap-0 bg-[#0a0e17] border-l border-[#1f2937]/20 overflow-y-auto [&>button]:hidden"
       >
         {/* Accessibility: Hidden but required by Radix Dialog */}
         <SheetTitle className="sr-only">{detail?.name || symbol || 'Index Detail'}</SheetTitle>
         <SheetDescription className="sr-only">Index detail view with chart, option chain, and statistics</SheetDescription>
 
         {/* ═══ Header ═════════════════════════════════════════════════════════ */}
-        <div className="sticky top-0 z-30 bg-tp-surface/95 backdrop-blur-md border-b border-tp-outline-variant/20">
+        <div className="sticky top-0 z-30 bg-[#0a0e17]/95 backdrop-blur-md border-b border-[#1f2937]/20">
           <div className="flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
               {detailLoading ? (
@@ -445,23 +445,23 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
                 <>
                   <div className={cn(
                     'flex size-10 items-center justify-center rounded-xl',
-                    isPositive ? 'bg-tp-secondary-container' : 'bg-tp-error-container'
+                    isPositive ? 'bg-emerald-500/10' : 'bg-red-500/10'
                   )}>
                     {isPositive ? (
-                      <TrendingUp className="size-5 text-tp-on-secondary-container" />
+                      <TrendingUp className="size-5 text-emerald-400" />
                     ) : (
-                      <TrendingDown className="size-5 text-tp-on-error-container" />
+                      <TrendingDown className="size-5 text-red-400" />
                     )}
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-tp-on-surface">{detail?.name || symbol}</h2>
+                    <h2 className="text-xl font-bold text-white">{detail?.name || symbol}</h2>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-2xl font-bold font-mono-data text-tp-on-surface">
+                      <span className="text-2xl font-bold font-mono-data text-white">
                         {detail?.currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                       </span>
                       <span className={cn(
                         'flex items-center gap-0.5 text-sm font-semibold',
-                        isPositive ? 'text-tp-secondary' : 'text-tp-tertiary'
+                        isPositive ? 'text-emerald-500' : 'text-red-500'
                       )}>
                         {isPositive ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
                         {isPositive ? '+' : ''}{detail?.change.toFixed(2)} ({isPositive ? '+' : ''}{detail?.changePercent.toFixed(2)}%)
@@ -474,7 +474,7 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 text-tp-primary border-tp-primary/30 hover:bg-tp-primary/10 hover:text-tp-primary font-semibold shrink-0"
+              className="gap-1.5 text-amber-500 border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-500 font-semibold shrink-0"
               onClick={() => setActiveTab('optionChain')}
             >
               <GitBranch className="size-4" />
@@ -483,7 +483,7 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
             <Button
               variant="ghost"
               size="icon"
-              className="text-tp-on-surface-variant hover:text-tp-on-surface shrink-0"
+              className="text-gray-400 hover:text-white shrink-0"
               onClick={() => onOpenChange(false)}
             >
               <X className="size-5" />
@@ -494,24 +494,24 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
         {/* ═══ Tabs ══════════════════════════════════════════════════════════ */}
         <div className="px-6 pt-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="bg-tp-surface-container rounded-xl p-1 h-auto">
+            <TabsList className="bg-[#111827] rounded-xl p-1 h-auto">
               <TabsTrigger
                 value="chart"
-                className="rounded-lg px-4 py-2 text-sm font-semibold data-[state=active]:bg-tp-primary data-[state=active]:text-tp-on-primary transition-all"
+                className="rounded-lg px-4 py-2 text-sm font-semibold data-[state=active]:bg-amber-500 data-[state=active]:text-black transition-all"
               >
                 <BarChart3 className="size-4 mr-1.5" />
                 Chart
               </TabsTrigger>
               <TabsTrigger
                 value="optionChain"
-                className="rounded-lg px-4 py-2 text-sm font-semibold data-[state=active]:bg-tp-primary data-[state=active]:text-tp-on-primary transition-all"
+                className="rounded-lg px-4 py-2 text-sm font-semibold data-[state=active]:bg-amber-500 data-[state=active]:text-black transition-all"
               >
                 <GitBranch className="size-4 mr-1.5" />
                 Option Chain
               </TabsTrigger>
               <TabsTrigger
                 value="stats"
-                className="rounded-lg px-4 py-2 text-sm font-semibold data-[state=active]:bg-tp-primary data-[state=active]:text-tp-on-primary transition-all"
+                className="rounded-lg px-4 py-2 text-sm font-semibold data-[state=active]:bg-amber-500 data-[state=active]:text-black transition-all"
               >
                 <Activity className="size-4 mr-1.5" />
                 Statistics
@@ -530,8 +530,8 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
                       className={cn(
                         'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
                         range === r
-                          ? 'bg-tp-primary text-tp-on-primary shadow-sm'
-                          : 'text-tp-on-surface-variant hover:bg-tp-surface-container hover:text-tp-on-surface'
+                          ? 'bg-amber-500 text-black shadow-sm'
+                          : 'text-gray-400 hover:bg-[#111827] hover:text-white'
                       )}
                     >
                       {r}
@@ -543,7 +543,7 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
                     onClick={() => setChartType('area')}
                     className={cn(
                       'p-2 rounded-lg transition-all',
-                      chartType === 'area' ? 'bg-tp-surface-container text-tp-primary' : 'text-tp-on-surface-variant hover:text-tp-on-surface'
+                      chartType === 'area' ? 'bg-[#111827] text-amber-500' : 'text-gray-400 hover:text-white'
                     )}
                   >
                     <BarChart3 className="size-4" />
@@ -552,7 +552,7 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
                     onClick={() => setChartType('candle')}
                     className={cn(
                       'p-2 rounded-lg transition-all',
-                      chartType === 'candle' ? 'bg-tp-surface-container text-tp-primary' : 'text-tp-on-surface-variant hover:text-tp-on-surface'
+                      chartType === 'candle' ? 'bg-[#111827] text-amber-500' : 'text-gray-400 hover:text-white'
                     )}
                   >
                     <GitBranch className="size-4" />
@@ -561,16 +561,16 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
               </div>
 
               {/* Chart */}
-              <div className="bg-tp-surface-container-lowest rounded-xl p-4 border border-tp-outline-variant/10">
+              <div className="bg-[#0a0e17] rounded-xl p-4 border border-[#1f2937]/10">
                 {chartLoading ? (
                   <div className="h-[350px] flex items-center justify-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="flex gap-1.5">
-                        <div className="size-2 rounded-full bg-tp-primary animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="size-2 rounded-full bg-tp-primary animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="size-2 rounded-full bg-tp-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <div className="size-2 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="size-2 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="size-2 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '300ms' }} />
                       </div>
-                      <span className="text-xs text-tp-on-surface-variant">Loading chart data...</span>
+                      <span className="text-xs text-gray-400">Loading chart data...</span>
                     </div>
                   </div>
                 ) : chartDataFormatted.length > 0 ? (
@@ -653,7 +653,7 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="h-[350px] flex items-center justify-center text-tp-on-surface-variant text-sm">
+                  <div className="h-[350px] flex items-center justify-center text-gray-400 text-sm">
                     No chart data available
                   </div>
                 )}
@@ -671,35 +671,35 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
             {/* ═══ Option Chain Tab ═════════════════════════════════════════ */}
             <TabsContent value="optionChain" className="mt-4 space-y-4">
               {/* Option Chain Stats */}
-              <div className="glass-card p-3 rounded-xl flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+              <div className="bg-[#111827] border border-[#1f2937] p-3 rounded-xl flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
                 <div className="flex items-center gap-1.5">
-                  <Target className="size-3.5 text-tp-primary" />
-                  <span className="text-tp-on-surface-variant">Spot:</span>
-                  <span className="font-mono font-bold text-tp-on-surface">
+                  <Target className="size-3.5 text-amber-500" />
+                  <span className="text-gray-400">Spot:</span>
+                  <span className="font-mono font-bold text-white">
                     {detail?.currentPrice.toLocaleString('en-IN') || '--'}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Activity className="size-3.5 text-tp-secondary" />
-                  <span className="text-tp-on-surface-variant">PCR:</span>
+                  <Activity className="size-3.5 text-emerald-500" />
+                  <span className="text-gray-400">PCR:</span>
                   <span className={cn(
                     'font-mono font-bold',
-                    optionStats.pcr > 1 ? 'text-emerald-600' : optionStats.pcr < 0.7 ? 'text-red-600' : 'text-tp-on-surface'
+                    optionStats.pcr > 1 ? 'text-emerald-600' : optionStats.pcr < 0.7 ? 'text-red-600' : 'text-white'
                   )}>
                     {optionStats.pcr.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Shield className="size-3.5 text-tp-tertiary" />
-                  <span className="text-tp-on-surface-variant">Max Pain:</span>
-                  <span className="font-mono font-bold text-tp-on-surface">
+                  <Shield className="size-3.5 text-red-500" />
+                  <span className="text-gray-400">Max Pain:</span>
+                  <span className="font-mono font-bold text-white">
                     {optionStats.maxPain.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Info className="size-3.5 text-blue-500" />
-                  <span className="text-tp-on-surface-variant">Lot Size:</span>
-                  <span className="font-mono font-bold text-tp-on-surface">{detail?.lotSize || 50}</span>
+                  <span className="text-gray-400">Lot Size:</span>
+                  <span className="font-mono font-bold text-white">{detail?.lotSize || 50}</span>
                 </div>
               </div>
 
@@ -723,39 +723,39 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
                 <div className="flex items-center justify-center py-8">
                   <div className="flex flex-col items-center gap-3">
                     <div className="flex gap-1.5">
-                      <div className="size-2 rounded-full bg-tp-primary animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <div className="size-2 rounded-full bg-tp-primary animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <div className="size-2 rounded-full bg-tp-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+                      <div className="size-2 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="size-2 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="size-2 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
-                    <span className="text-xs text-tp-on-surface-variant">Loading option chain...</span>
+                    <span className="text-xs text-gray-400">Loading option chain...</span>
                   </div>
                 </div>
               )}
 
               {/* Option Chain Table */}
-              <div className="glass-card rounded-xl overflow-hidden">
+              <div className="bg-[#111827] border border-[#1f2937] rounded-xl overflow-hidden">
                 <div className="overflow-x-auto custom-scrollbar max-h-[500px] overflow-y-auto">
                   <table className="w-full text-xs">
                     <thead className="sticky top-0 z-10">
-                      <tr className="bg-tp-surface-container border-b border-tp-outline-variant/30">
-                        <th colSpan={6} className="text-center py-2 text-tp-secondary font-bold text-xs uppercase tracking-wider">
+                      <tr className="bg-[#111827] border-b border-[#1f2937]/30">
+                        <th colSpan={6} className="text-center py-2 text-emerald-500 font-bold text-xs uppercase tracking-wider">
                           CALLS (CE)
                         </th>
-                        <th className="text-center py-2 bg-tp-surface-container-high font-bold text-tp-on-surface border-x border-tp-outline-variant/20">
+                        <th className="text-center py-2 bg-[#1f2937] font-bold text-white border-x border-[#1f2937]/20">
                           STRIKE
                         </th>
-                        <th colSpan={6} className="text-center py-2 text-tp-tertiary font-bold text-xs uppercase tracking-wider">
+                        <th colSpan={6} className="text-center py-2 text-red-500 font-bold text-xs uppercase tracking-wider">
                           PUTS (PE)
                         </th>
                       </tr>
-                      <tr className="border-b border-tp-outline-variant/30 text-tp-on-surface-variant bg-tp-surface-container">
+                      <tr className="border-b border-[#1f2937]/30 text-gray-400 bg-[#111827]">
                         <th className="px-1.5 py-1.5 text-right font-semibold">OI(L)</th>
                         <th className="px-1.5 py-1.5 text-right font-semibold">Chg%</th>
                         <th className="px-1.5 py-1.5 text-right font-semibold">LTP</th>
                         <th className="px-1.5 py-1.5 text-right font-semibold">Chg%</th>
                         <th className="px-1.5 py-1.5 text-right font-semibold">IV</th>
                         <th className="px-1.5 py-1.5 text-right font-semibold">Vol</th>
-                        <th className="px-1.5 py-1.5 text-center font-bold bg-tp-surface-container-high border-x border-tp-outline-variant/20 text-tp-on-surface">
+                        <th className="px-1.5 py-1.5 text-center font-bold bg-[#1f2937] border-x border-[#1f2937]/20 text-white">
                           ₹
                         </th>
                         <th className="px-1.5 py-1.5 text-left font-semibold">Vol</th>
@@ -776,65 +776,65 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
                           <tr
                             key={row.strike}
                             className={cn(
-                              'border-b border-tp-outline-variant/10 transition-colors hover:bg-tp-primary/5',
+                              'border-b border-[#1f2937]/10 transition-colors hover:bg-amber-500/5',
                               isATM && 'bg-yellow-100/60 dark:bg-yellow-900/30'
                             )}
                           >
                             {/* CE Side — Clickable to Trade */}
-                            <td className={cn('px-1.5 py-1 text-right font-mono cursor-pointer hover:text-tp-primary', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'CE')}>
+                            <td className={cn('px-1.5 py-1 text-right font-mono cursor-pointer hover:text-amber-500', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'CE')}>
                               {row.ceOI.toFixed(1)}
                             </td>
-                            <td className={cn('px-1.5 py-1 text-right font-mono text-[10px] cursor-pointer hover:text-tp-primary', getOIColorClass(row.ceOIChngPct), ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'CE')}>
+                            <td className={cn('px-1.5 py-1 text-right font-mono text-[10px] cursor-pointer hover:text-amber-500', getOIColorClass(row.ceOIChngPct), ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'CE')}>
                               {row.ceOIChngPct > 0 ? '+' : ''}{row.ceOIChngPct.toFixed(1)}%
                             </td>
-                            <td className={cn('px-1.5 py-1 text-right font-mono font-semibold cursor-pointer hover:text-tp-primary hover:underline', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'CE')}>
+                            <td className={cn('px-1.5 py-1 text-right font-mono font-semibold cursor-pointer hover:text-amber-500 hover:underline', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'CE')}>
                               {row.ceLTP.toFixed(2)}
                             </td>
                             <td className={cn(
-                              'px-1.5 py-1 text-right font-mono text-[10px] cursor-pointer hover:text-tp-primary',
-                              row.ceChngPct > 0 ? 'text-emerald-600' : row.ceChngPct < 0 ? 'text-red-500' : 'text-tp-on-surface-variant',
+                              'px-1.5 py-1 text-right font-mono text-[10px] cursor-pointer hover:text-amber-500',
+                              row.ceChngPct > 0 ? 'text-emerald-600' : row.ceChngPct < 0 ? 'text-red-500' : 'text-gray-400',
                               ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10'
                             )} onClick={() => handleOptionClick(row, 'CE')}>
                               {row.ceChngPct > 0 ? '+' : ''}{row.ceChngPct.toFixed(1)}%
                             </td>
-                            <td className={cn('px-1.5 py-1 text-right font-mono cursor-pointer hover:text-tp-primary', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'CE')}>
+                            <td className={cn('px-1.5 py-1 text-right font-mono cursor-pointer hover:text-amber-500', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'CE')}>
                               {row.ceIV.toFixed(1)}
                             </td>
-                            <td className={cn('px-1.5 py-1 text-right font-mono text-tp-on-surface-variant text-[10px] cursor-pointer hover:text-tp-primary', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'CE')}>
+                            <td className={cn('px-1.5 py-1 text-right font-mono text-gray-400 text-[10px] cursor-pointer hover:text-amber-500', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'CE')}>
                               {(row.ceVolume / 1000).toFixed(0)}K
                             </td>
 
                             {/* Strike */}
                             <td className={cn(
                               'px-2 py-1 text-center font-mono font-bold text-xs',
-                              'bg-tp-surface-container-high/50 border-x border-tp-outline-variant/20',
-                              isATM ? 'bg-yellow-200/80 dark:bg-yellow-800/50 text-yellow-900 dark:text-yellow-100' : 'text-tp-on-surface'
+                              'bg-[#1f2937]/50 border-x border-[#1f2937]/20',
+                              isATM ? 'bg-yellow-200/80 dark:bg-yellow-800/50 text-yellow-900 dark:text-yellow-100' : 'text-white'
                             )}>
                               {row.strike.toLocaleString()}
                               {isATM && <span className="ml-0.5 text-[8px] font-bold text-yellow-700 dark:text-yellow-300">ATM</span>}
                             </td>
 
                             {/* PE Side — Clickable to Trade */}
-                            <td className={cn('px-1.5 py-1 text-left font-mono text-tp-on-surface-variant text-[10px] cursor-pointer hover:text-tp-primary', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'PE')}>
+                            <td className={cn('px-1.5 py-1 text-left font-mono text-gray-400 text-[10px] cursor-pointer hover:text-amber-500', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'PE')}>
                               {(row.peVolume / 1000).toFixed(0)}K
                             </td>
-                            <td className={cn('px-1.5 py-1 text-left font-mono cursor-pointer hover:text-tp-primary', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'PE')}>
+                            <td className={cn('px-1.5 py-1 text-left font-mono cursor-pointer hover:text-amber-500', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'PE')}>
                               {row.peIV.toFixed(1)}
                             </td>
                             <td className={cn(
-                              'px-1.5 py-1 text-left font-mono text-[10px] cursor-pointer hover:text-tp-primary',
-                              row.peChngPct > 0 ? 'text-emerald-600' : row.peChngPct < 0 ? 'text-red-500' : 'text-tp-on-surface-variant',
+                              'px-1.5 py-1 text-left font-mono text-[10px] cursor-pointer hover:text-amber-500',
+                              row.peChngPct > 0 ? 'text-emerald-600' : row.peChngPct < 0 ? 'text-red-500' : 'text-gray-400',
                               peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10'
                             )} onClick={() => handleOptionClick(row, 'PE')}>
                               {row.peChngPct > 0 ? '+' : ''}{row.peChngPct.toFixed(1)}%
                             </td>
-                            <td className={cn('px-1.5 py-1 text-left font-mono font-semibold cursor-pointer hover:text-tp-primary hover:underline', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'PE')}>
+                            <td className={cn('px-1.5 py-1 text-left font-mono font-semibold cursor-pointer hover:text-amber-500 hover:underline', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'PE')}>
                               {row.peLTP.toFixed(2)}
                             </td>
-                            <td className={cn('px-1.5 py-1 text-left font-mono text-[10px] cursor-pointer hover:text-tp-primary', getOIColorClass(row.peOIChngPct), peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'PE')}>
+                            <td className={cn('px-1.5 py-1 text-left font-mono text-[10px] cursor-pointer hover:text-amber-500', getOIColorClass(row.peOIChngPct), peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'PE')}>
                               {row.peOIChngPct > 0 ? '+' : ''}{row.peOIChngPct.toFixed(1)}%
                             </td>
-                            <td className={cn('px-1.5 py-1 text-left font-mono cursor-pointer hover:text-tp-primary', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'PE')}>
+                            <td className={cn('px-1.5 py-1 text-left font-mono cursor-pointer hover:text-amber-500', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'PE')}>
                               {row.peOI.toFixed(1)}
                             </td>
                           </tr>
@@ -847,28 +847,28 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
 
               {/* Key Levels */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="glass-card p-3 rounded-xl">
+                <div className="bg-[#111827] border border-[#1f2937] p-3 rounded-xl">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <Shield className="size-3.5 text-tp-primary" />
-                    <span className="text-xs font-semibold text-tp-on-surface-variant">Max Pain</span>
+                    <Shield className="size-3.5 text-amber-500" />
+                    <span className="text-xs font-semibold text-gray-400">Max Pain</span>
                   </div>
-                  <span className="text-lg font-bold font-mono text-tp-primary">{optionStats.maxPain.toLocaleString()}</span>
+                  <span className="text-lg font-bold font-mono text-amber-500">{optionStats.maxPain.toLocaleString()}</span>
                 </div>
-                <div className="glass-card p-3 rounded-xl">
+                <div className="bg-[#111827] border border-[#1f2937] p-3 rounded-xl">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <TrendingUp className="size-3.5 text-tp-tertiary" />
-                    <span className="text-xs font-semibold text-tp-on-surface-variant">CE Resistance</span>
+                    <TrendingUp className="size-3.5 text-red-500" />
+                    <span className="text-xs font-semibold text-gray-400">CE Resistance</span>
                   </div>
-                  <span className="text-lg font-bold font-mono text-tp-tertiary">{optionStats.highestCEOI?.strike.toLocaleString()}</span>
-                  <span className="text-[10px] text-tp-on-surface-variant ml-1">({optionStats.highestCEOI?.ceOI.toFixed(1)}L)</span>
+                  <span className="text-lg font-bold font-mono text-red-500">{optionStats.highestCEOI?.strike.toLocaleString()}</span>
+                  <span className="text-[10px] text-gray-400 ml-1">({optionStats.highestCEOI?.ceOI.toFixed(1)}L)</span>
                 </div>
-                <div className="glass-card p-3 rounded-xl">
+                <div className="bg-[#111827] border border-[#1f2937] p-3 rounded-xl">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <TrendingDown className="size-3.5 text-tp-secondary" />
-                    <span className="text-xs font-semibold text-tp-on-surface-variant">PE Support</span>
+                    <TrendingDown className="size-3.5 text-emerald-500" />
+                    <span className="text-xs font-semibold text-gray-400">PE Support</span>
                   </div>
-                  <span className="text-lg font-bold font-mono text-tp-secondary">{optionStats.highestPEOI?.strike.toLocaleString()}</span>
-                  <span className="text-[10px] text-tp-on-surface-variant ml-1">({optionStats.highestPEOI?.peOI.toFixed(1)}L)</span>
+                  <span className="text-lg font-bold font-mono text-emerald-500">{optionStats.highestPEOI?.strike.toLocaleString()}</span>
+                  <span className="text-[10px] text-gray-400 ml-1">({optionStats.highestPEOI?.peOI.toFixed(1)}L)</span>
                 </div>
               </div>
             </TabsContent>
@@ -889,25 +889,25 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
 
               {/* Day Range Bar */}
               {detail && detail.low > 0 && detail.high > 0 && (
-                <div className="glass-card p-4 rounded-xl space-y-3">
-                  <h4 className="text-sm font-semibold text-tp-on-surface">Day Range</h4>
+                <div className="bg-[#111827] border border-[#1f2937] p-4 rounded-xl space-y-3">
+                  <h4 className="text-sm font-semibold text-white">Day Range</h4>
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs font-mono">
-                      <span className="text-tp-tertiary font-semibold">{detail.low.toLocaleString('en-IN')}</span>
-                      <span className="text-tp-secondary font-semibold">{detail.high.toLocaleString('en-IN')}</span>
+                      <span className="text-red-500 font-semibold">{detail.low.toLocaleString('en-IN')}</span>
+                      <span className="text-emerald-500 font-semibold">{detail.high.toLocaleString('en-IN')}</span>
                     </div>
-                    <div className="h-2 rounded-full bg-tp-surface-container relative overflow-hidden">
+                    <div className="h-2 rounded-full bg-[#111827] relative overflow-hidden">
                       {(() => {
                         const range = detail.high - detail.low
                         const currentPos = range > 0 ? ((detail.currentPrice - detail.low) / range) * 100 : 50
                         return (
                           <>
                             <div
-                              className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-tp-tertiary to-tp-secondary opacity-30"
+                              className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-red-500 to-emerald-500 opacity-30"
                               style={{ width: '100%' }}
                             />
                             <div
-                              className="absolute top-0 h-full w-1 bg-tp-on-surface rounded-full"
+                              className="absolute top-0 h-full w-1 bg-white rounded-full"
                               style={{ left: `${Math.min(100, Math.max(0, currentPos))}%` }}
                             />
                           </>
@@ -920,14 +920,14 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
 
               {/* 52 Week Range Bar */}
               {detail && detail.week52Low > 0 && detail.week52High > 0 && (
-                <div className="glass-card p-4 rounded-xl space-y-3">
-                  <h4 className="text-sm font-semibold text-tp-on-surface">52 Week Range</h4>
+                <div className="bg-[#111827] border border-[#1f2937] p-4 rounded-xl space-y-3">
+                  <h4 className="text-sm font-semibold text-white">52 Week Range</h4>
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs font-mono">
-                      <span className="text-tp-tertiary font-semibold">{detail.week52Low.toLocaleString('en-IN')}</span>
-                      <span className="text-tp-secondary font-semibold">{detail.week52High.toLocaleString('en-IN')}</span>
+                      <span className="text-red-500 font-semibold">{detail.week52Low.toLocaleString('en-IN')}</span>
+                      <span className="text-emerald-500 font-semibold">{detail.week52High.toLocaleString('en-IN')}</span>
                     </div>
-                    <div className="h-2 rounded-full bg-tp-surface-container relative overflow-hidden">
+                    <div className="h-2 rounded-full bg-[#111827] relative overflow-hidden">
                       {(() => {
                         const range = detail.week52High - detail.week52Low
                         const currentPos = range > 0 ? ((detail.currentPrice - detail.week52Low) / range) * 100 : 50
@@ -938,7 +938,7 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
                               style={{ width: '100%' }}
                             />
                             <div
-                              className="absolute top-0 h-full w-1.5 bg-tp-on-surface rounded-full"
+                              className="absolute top-0 h-full w-1.5 bg-white rounded-full"
                               style={{ left: `${Math.min(100, Math.max(0, currentPos))}%` }}
                             />
                           </>
@@ -950,8 +950,8 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
               )}
 
               {/* Performance Metrics */}
-              <div className="glass-card p-4 rounded-xl">
-                <h4 className="text-sm font-semibold text-tp-on-surface mb-3">Performance</h4>
+              <div className="bg-[#111827] border border-[#1f2937] p-4 rounded-xl">
+                <h4 className="text-sm font-semibold text-white mb-3">Performance</h4>
                 <div className="space-y-3">
                   {detail && (
                     <>
@@ -965,32 +965,32 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
               </div>
 
               {/* Info Box */}
-              <div className="glass-card p-4 rounded-xl">
-                <h4 className="text-sm font-semibold text-tp-on-surface mb-2 flex items-center gap-2">
-                  <Info className="size-4 text-tp-primary" />
+              <div className="bg-[#111827] border border-[#1f2937] p-4 rounded-xl">
+                <h4 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+                  <Info className="size-4 text-amber-500" />
                   Index Info
                 </h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-tp-on-surface-variant">Exchange</span>
-                    <span className="font-semibold text-tp-on-surface">NSE</span>
+                    <span className="text-gray-400">Exchange</span>
+                    <span className="font-semibold text-white">NSE</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-tp-on-surface-variant">Currency</span>
-                    <span className="font-semibold text-tp-on-surface">INR (₹)</span>
+                    <span className="text-gray-400">Currency</span>
+                    <span className="font-semibold text-white">INR (₹)</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-tp-on-surface-variant">Strike Interval</span>
-                    <span className="font-semibold text-tp-on-surface">₹{detail?.strikeInterval || '--'}</span>
+                    <span className="text-gray-400">Strike Interval</span>
+                    <span className="font-semibold text-white">₹{detail?.strikeInterval || '--'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-tp-on-surface-variant">Lot Size</span>
-                    <span className="font-semibold text-tp-on-surface">{detail?.lotSize || '--'}</span>
+                    <span className="text-gray-400">Lot Size</span>
+                    <span className="font-semibold text-white">{detail?.lotSize || '--'}</span>
                   </div>
                   {detail?.isRealData && (
                     <div className="flex justify-between">
-                      <span className="text-tp-on-surface-variant">Data Source</span>
-                      <Badge className="bg-tp-secondary-container text-tp-on-secondary-container text-[10px] font-semibold px-2 py-0.5 border-0">
+                      <span className="text-gray-400">Data Source</span>
+                      <Badge className="bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold px-2 py-0.5 border-0">
                         LIVE
                       </Badge>
                     </div>
@@ -1114,7 +1114,7 @@ function OptionTradeModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span className="text-tp-primary font-bold">
+            <span className="text-amber-500 font-bold">
               {side === 'CE' ? 'CALL' : 'PUT'} Option
             </span>
             <Badge variant="outline" className="font-mono">
@@ -1125,21 +1125,21 @@ function OptionTradeModal({
 
         <div className="space-y-4 pt-2">
           {/* Option Info */}
-          <div className="glass-card p-4 rounded-xl space-y-2">
+          <div className="bg-[#111827] border border-[#1f2937] p-4 rounded-xl space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-tp-on-surface-variant">Spot Price</span>
+              <span className="text-gray-400">Spot Price</span>
               <span className="font-mono font-semibold">₹{spotPrice.toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-tp-on-surface-variant">LTP</span>
+              <span className="text-gray-400">LTP</span>
               <span className="font-mono font-semibold">₹{ltp.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-tp-on-surface-variant">IV</span>
+              <span className="text-gray-400">IV</span>
               <span className="font-mono">{side === 'CE' ? row.ceIV : row.peIV}%</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-tp-on-surface-variant">OI</span>
+              <span className="text-gray-400">OI</span>
               <span className="font-mono">{(side === 'CE' ? row.ceOI : row.peOI).toFixed(1)} L</span>
             </div>
           </div>
@@ -1150,7 +1150,7 @@ function OptionTradeModal({
               onClick={() => setDirection('BUY')}
               className={cn(
                 'flex-1 font-bold',
-                direction === 'BUY' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-muted text-muted-foreground'
+                direction === 'BUY' ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'
               )}
             >
               BUY
@@ -1159,7 +1159,7 @@ function OptionTradeModal({
               onClick={() => setDirection('SELL')}
               className={cn(
                 'flex-1 font-bold',
-                direction === 'SELL' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-muted text-muted-foreground'
+                direction === 'SELL' ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-muted text-muted-foreground'
               )}
             >
               SELL
@@ -1168,7 +1168,7 @@ function OptionTradeModal({
 
           {/* Lots Input */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-tp-on-surface-variant">Lots</label>
+            <label className="text-sm font-medium text-gray-400">Lots</label>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="icon" className="size-9" onClick={() => setLots(Math.max(1, lots - 1))}>
                 <Minus className="size-3" />
@@ -1181,26 +1181,26 @@ function OptionTradeModal({
           </div>
 
           {/* Calculated Fields */}
-          <div className="glass-card p-4 rounded-xl space-y-2 text-sm">
+          <div className="bg-[#111827] border border-[#1f2937] p-4 rounded-xl space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-tp-on-surface-variant">Lot Size</span>
+              <span className="text-gray-400">Lot Size</span>
               <span className="font-mono font-medium">{lotSize}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-tp-on-surface-variant">Total Qty</span>
+              <span className="text-gray-400">Total Qty</span>
               <span className="font-mono font-medium">{totalQty}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-tp-on-surface-variant">Premium</span>
+              <span className="text-gray-400">Premium</span>
               <span className="font-mono font-medium">₹{totalPremium.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-tp-on-surface-variant">Brokerage</span>
+              <span className="text-gray-400">Brokerage</span>
               <span className="font-mono font-medium">₹{brokerage.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between border-t border-tp-outline-variant/20 pt-2">
-              <span className="text-tp-on-surface-variant font-semibold">{direction === 'BUY' ? 'Total Cost' : 'Margin Required'}</span>
-              <span className="font-mono font-bold text-tp-primary text-base">₹{marginRequired.toLocaleString()}</span>
+            <div className="flex justify-between border-t border-[#1f2937]/20 pt-2">
+              <span className="text-gray-400 font-semibold">{direction === 'BUY' ? 'Total Cost' : 'Margin Required'}</span>
+              <span className="font-mono font-bold text-amber-500 text-base">₹{marginRequired.toLocaleString()}</span>
             </div>
           </div>
 
@@ -1210,8 +1210,8 @@ function OptionTradeModal({
             className={cn(
               'w-full font-bold py-3',
               direction === 'BUY'
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                : 'bg-red-600 hover:bg-red-700 text-white'
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                : 'bg-red-500 hover:bg-red-600 text-white'
             )}
           >
             {placing ? (
@@ -1221,7 +1221,7 @@ function OptionTradeModal({
             )}
           </Button>
 
-          <p className="text-[10px] text-center text-tp-on-surface-variant flex items-center justify-center gap-1">
+          <p className="text-[10px] text-center text-gray-400 flex items-center justify-center gap-1">
             <Info className="size-3" />
             Paper trading — No real money involved
           </p>
@@ -1235,11 +1235,11 @@ function OptionTradeModal({
 
 function StatBox({ label, value, highlight, danger }: { label: string; value: string; highlight?: boolean; danger?: boolean }) {
   return (
-    <div className="bg-tp-surface-container-lowest rounded-xl p-3 border border-tp-outline-variant/10">
-      <p className="text-[10px] font-semibold text-tp-on-surface-variant tracking-wider uppercase mb-1">{label}</p>
+    <div className="bg-[#0a0e17] rounded-xl p-3 border border-[#1f2937]/10">
+      <p className="text-[10px] font-semibold text-gray-400 tracking-wider uppercase mb-1">{label}</p>
       <p className={cn(
         'font-mono font-semibold text-sm',
-        highlight ? 'text-tp-secondary' : danger ? 'text-tp-tertiary' : 'text-tp-on-surface'
+        highlight ? 'text-emerald-500' : danger ? 'text-red-500' : 'text-white'
       )}>
         {value}
       </p>
@@ -1249,11 +1249,11 @@ function StatBox({ label, value, highlight, danger }: { label: string; value: st
 
 function StatCard({ label, value, highlight, danger }: { label: string; value: string; highlight?: boolean; danger?: boolean }) {
   return (
-    <div className="glass-card p-4 rounded-xl">
-      <p className="text-xs font-semibold text-tp-on-surface-variant tracking-wider uppercase mb-1.5">{label}</p>
+    <div className="bg-[#111827] border border-[#1f2937] p-4 rounded-xl">
+      <p className="text-xs font-semibold text-gray-400 tracking-wider uppercase mb-1.5">{label}</p>
       <p className={cn(
         'font-mono font-bold text-lg',
-        highlight ? 'text-tp-secondary' : danger ? 'text-tp-tertiary' : 'text-tp-on-surface'
+        highlight ? 'text-emerald-500' : danger ? 'text-red-500' : 'text-white'
       )}>
         {value}
       </p>
@@ -1265,19 +1265,19 @@ function PerformanceRow({ label, change, changePercent }: { label: string; chang
   const isPositive = change >= 0
   return (
     <div className="flex items-center justify-between">
-      <span className="text-sm text-tp-on-surface-variant">{label}</span>
+      <span className="text-sm text-gray-400">{label}</span>
       <div className="flex items-center gap-2">
         <span className={cn(
           'font-mono text-sm font-semibold',
-          isPositive ? 'text-tp-secondary' : 'text-tp-tertiary'
+          isPositive ? 'text-emerald-500' : 'text-red-500'
         )}>
           {isPositive ? '+' : ''}{change.toFixed(2)}
         </span>
         <span className={cn(
           'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold',
           isPositive
-            ? 'bg-tp-secondary-container text-tp-on-secondary-container'
-            : 'bg-tp-error-container text-tp-on-error-container'
+            ? 'bg-emerald-500/10 text-emerald-400'
+            : 'bg-red-500/10 text-red-400'
         )}>
           {isPositive ? '+' : ''}{changePercent.toFixed(2)}%
         </span>

@@ -17,7 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Medal,
   Crown,
@@ -30,42 +29,10 @@ import {
   Trophy,
 } from 'lucide-react'
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
 const top3 = [
-  {
-    rank: 2,
-    name: 'Priya Sharma',
-    initials: 'PS',
-    roi: 287.4,
-    winRate: 82.1,
-    borderColor: '#C0C0C0',
-    bgColor: 'bg-gray-100',
-    textColor: 'text-gray-600',
-    borderClass: 'border-gray-300',
-  },
-  {
-    rank: 1,
-    name: 'Rahul Gupta',
-    initials: 'RG',
-    roi: 342.8,
-    winRate: 89.3,
-    borderColor: '#FFD700',
-    bgColor: 'bg-yellow-50',
-    textColor: 'text-yellow-600',
-    borderClass: 'border-yellow-400',
-  },
-  {
-    rank: 3,
-    name: 'Amit Patel',
-    initials: 'AP',
-    roi: 256.1,
-    winRate: 76.5,
-    borderColor: '#CD7F32',
-    bgColor: 'bg-amber-50',
-    textColor: 'text-amber-600',
-    borderClass: 'border-amber-500',
-  },
+  { rank: 2, name: 'Priya Sharma', initials: 'PS', roi: 287.4, winRate: 82.1, borderColor: '#C0C0C0', bgColor: 'bg-gray-800', textColor: 'text-gray-300', borderClass: 'border-gray-500' },
+  { rank: 1, name: 'Rahul Gupta', initials: 'RG', roi: 342.8, winRate: 89.3, borderColor: '#FFD700', bgColor: 'bg-yellow-900/30', textColor: 'text-yellow-400', borderClass: 'border-yellow-500' },
+  { rank: 3, name: 'Amit Patel', initials: 'AP', roi: 256.1, winRate: 76.5, borderColor: '#CD7F32', bgColor: 'bg-amber-900/30', textColor: 'text-amber-400', borderClass: 'border-amber-500' },
 ]
 
 const leaderboardData = [
@@ -95,62 +62,54 @@ const yourRow = {
 const timeFilters = ['Weekly', 'Monthly', 'All Time'] as const
 const categoryFilters = ['Overall', 'Equity', 'F&O', 'Index'] as const
 
-// ─── Trend Icon (declared outside render) ──────────────────────────────────────
-
 function TrendIcon({ trend }: { trend: string }) {
-  if (trend === 'up') return <ArrowUpRight className="size-4 text-tp-secondary" />
-  if (trend === 'down') return <ArrowDownRight className="size-4 text-tp-tertiary" />
-  return <Minus className="size-4 text-tp-on-surface-variant" />
+  if (trend === 'up') return <ArrowUpRight className="size-4 text-emerald-400" />
+  if (trend === 'down') return <ArrowDownRight className="size-4 text-red-400" />
+  return <Minus className="size-4 text-gray-400" />
 }
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export function LeaderboardPage() {
   const [timeFilter, setTimeFilter] = useState<string>('Monthly')
   const [categoryFilter, setCategoryFilter] = useState<string>('Overall')
 
   return (
-    <div className="min-h-screen bg-tp-surface p-4 sm:p-6 lg:p-8 space-y-6">
-      {/* ── Page Header ─────────────────────────────────────────────────── */}
+    <div className="min-h-screen bg-[#0a0e17] p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-tp-on-surface tracking-tight flex items-center gap-2">
-              <Trophy className="size-7 text-tp-primary" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2">
+              <Trophy className="size-7 text-amber-500" />
               Leaderboard
             </h1>
-            <p className="text-tp-on-surface-variant mt-1 text-sm">
-              See how you stack up against the best traders
-            </p>
+            <p className="text-gray-400 mt-1 text-sm">See how you stack up against the best traders</p>
           </div>
         </div>
 
-        {/* Time Filter */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="glass-card inline-flex items-center gap-1 rounded-full p-1 self-start">
+          <div className="bg-[#111827] border border-[#1f2937] inline-flex items-center gap-1 rounded-full p-1 self-start">
             {timeFilters.map((filter) => (
               <button
                 key={filter}
                 onClick={() => setTimeFilter(filter)}
                 className={`tab-transition rounded-full px-4 py-1.5 text-xs font-semibold ${
                   timeFilter === filter
-                    ? 'bg-tp-primary text-tp-on-primary shadow-sm'
-                    : 'text-tp-on-surface-variant hover:bg-tp-surface-container'
+                    ? 'bg-amber-500 text-black shadow-sm'
+                    : 'text-gray-400 hover:bg-[#1a2332]'
                 }`}
               >
                 {filter}
               </button>
             ))}
           </div>
-          <div className="glass-card inline-flex items-center gap-1 rounded-full p-1 self-start">
+          <div className="bg-[#111827] border border-[#1f2937] inline-flex items-center gap-1 rounded-full p-1 self-start">
             {categoryFilters.map((filter) => (
               <button
                 key={filter}
                 onClick={() => setCategoryFilter(filter)}
                 className={`tab-transition rounded-full px-4 py-1.5 text-xs font-semibold ${
                   categoryFilter === filter
-                    ? 'bg-tp-primary text-tp-on-primary shadow-sm'
-                    : 'text-tp-on-surface-variant hover:bg-tp-surface-container'
+                    ? 'bg-amber-500 text-black shadow-sm'
+                    : 'text-gray-400 hover:bg-[#1a2332]'
                 }`}
               >
                 {filter}
@@ -160,27 +119,22 @@ export function LeaderboardPage() {
         </div>
       </div>
 
-      {/* ── Top 3 Podium ────────────────────────────────────────────────── */}
+      {/* Top 3 Podium */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
-        {/* Render #2 first on mobile, but we want #1 in center on desktop */}
         {top3.map((player) => {
           const isFirst = player.rank === 1
           return (
             <Card
               key={player.rank}
-              className={`glass-card rounded-xl shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 border-2 ${player.borderClass} ${
-                isFirst ? 'sm:scale-105 sm:z-10' : ''
-              }`}
+              className={`bg-[#111827] border border-[#1f2937] rounded-xl shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 border-2 ${player.borderClass} ${isFirst ? 'sm:scale-105 sm:z-10' : ''}`}
             >
               <CardContent className={`p-5 sm:p-6 text-center ${isFirst ? 'sm:py-8' : ''}`}>
-                {/* Crown for #1 */}
                 {isFirst && (
                   <div className="flex justify-center mb-2">
                     <Crown className="size-8 text-yellow-500 fill-yellow-400" />
                   </div>
                 )}
 
-                {/* Rank Badge */}
                 <div className="flex justify-center mb-3">
                   <div
                     className={`size-12 ${isFirst ? 'size-14' : ''} rounded-full flex items-center justify-center font-bold text-lg ${player.bgColor} ${player.textColor} border-2`}
@@ -190,7 +144,6 @@ export function LeaderboardPage() {
                   </div>
                 </div>
 
-                {/* Avatar */}
                 <div className="flex justify-center mb-3">
                   <div
                     className={`size-16 ${isFirst ? 'size-20' : ''} rounded-full flex items-center justify-center font-bold text-xl ${player.bgColor} ${player.textColor}`}
@@ -200,22 +153,13 @@ export function LeaderboardPage() {
                   </div>
                 </div>
 
-                <h3 className={`font-bold text-tp-on-surface ${isFirst ? 'text-lg' : 'text-base'}`}>
-                  {player.name}
-                </h3>
+                <h3 className={`font-bold text-white ${isFirst ? 'text-lg' : 'text-base'}`}>{player.name}</h3>
 
-                <p
-                  className={`font-mono-data font-bold mt-1 ${
-                    isFirst ? 'text-2xl text-tp-primary' : 'text-xl text-tp-on-surface'
-                  }`}
-                >
+                <p className={`font-mono font-bold mt-1 ${isFirst ? 'text-2xl text-amber-500' : 'text-xl text-white'}`}>
                   +{player.roi}% ROI
                 </p>
 
-                <Badge
-                  variant="secondary"
-                  className="mt-2 bg-tp-secondary/10 text-tp-secondary border-0 text-xs font-semibold"
-                >
+                <Badge variant="secondary" className="mt-2 bg-emerald-500/10 text-emerald-400 border-0 text-xs font-semibold">
                   <TrendingUp className="size-3 mr-1" />
                   {player.winRate}% Win Rate
                 </Badge>
@@ -225,18 +169,15 @@ export function LeaderboardPage() {
         })}
       </div>
 
-      {/* ── Full Rankings Table ─────────────────────────────────────────── */}
-      <Card className="glass-card rounded-xl shadow-sm">
+      {/* Full Rankings Table */}
+      <Card className="bg-[#111827] border border-[#1f2937] rounded-xl shadow-sm">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold text-tp-on-surface flex items-center gap-2">
-              <Medal className="size-5 text-tp-primary" />
+            <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
+              <Medal className="size-5 text-amber-500" />
               Full Rankings
             </CardTitle>
-            <Badge
-              variant="secondary"
-              className="bg-tp-surface-container text-tp-on-surface-variant border-0 text-xs gap-1"
-            >
+            <Badge variant="secondary" className="bg-[#1f2937] text-gray-400 border-0 text-xs gap-1">
               <Users className="size-3" />
               2,847 traders
             </Badge>
@@ -246,105 +187,55 @@ export function LeaderboardPage() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-transparent border-tp-outline-variant/30">
-                  <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider w-16">
-                    Rank
-                  </TableHead>
-                  <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider">
-                    User
-                  </TableHead>
-                  <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">
-                    ROI%
-                  </TableHead>
-                  <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">
-                    Win Rate
-                  </TableHead>
-                  <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right hidden sm:table-cell">
-                    Total Trades
-                  </TableHead>
-                  <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right hidden md:table-cell">
-                    P&amp;L
-                  </TableHead>
-                  <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right w-16">
-                    Trend
-                  </TableHead>
+                <TableRow className="hover:bg-transparent border-[#1f2937]">
+                  <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider w-16">Rank</TableHead>
+                  <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider">User</TableHead>
+                  <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">ROI%</TableHead>
+                  <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">Win Rate</TableHead>
+                  <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right hidden sm:table-cell">Total Trades</TableHead>
+                  <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right hidden md:table-cell">P&amp;L</TableHead>
+                  <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right w-16">Trend</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {/* "You" highlighted row */}
-                <TableRow className="bg-tp-primary/5 border-tp-primary/20 hover:bg-tp-primary/10">
-                  <TableCell className="font-bold text-tp-primary">
-                    #{yourRow.rank}
-                  </TableCell>
+                <TableRow className="bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/10">
+                  <TableCell className="font-bold text-amber-500">#{yourRow.rank}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <div className="size-8 rounded-full bg-tp-primary/10 flex items-center justify-center text-xs font-bold text-tp-primary border border-tp-primary/30">
+                      <div className="size-8 rounded-full bg-amber-500/10 flex items-center justify-center text-xs font-bold text-amber-500 border border-amber-500/30">
                         {yourRow.initials}
                       </div>
                       <div>
-                        <span className="font-semibold text-tp-primary text-sm">
-                          {yourRow.name}
-                        </span>
-                        <Badge
-                          variant="secondary"
-                          className="ml-2 bg-tp-primary/10 text-tp-primary border-0 text-[10px] font-bold px-1.5 py-0"
-                        >
-                          You
-                        </Badge>
+                        <span className="font-semibold text-amber-500 text-sm">{yourRow.name}</span>
+                        <Badge variant="secondary" className="ml-2 bg-amber-500/10 text-amber-500 border-0 text-[10px] font-bold px-1.5 py-0">You</Badge>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right font-mono-data font-semibold text-tp-secondary">
-                    +{yourRow.roi}%
-                  </TableCell>
-                  <TableCell className="text-right font-mono-data text-tp-on-surface">
-                    {yourRow.winRate}%
-                  </TableCell>
-                  <TableCell className="text-right font-mono-data text-tp-on-surface hidden sm:table-cell">
-                    {yourRow.totalTrades.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right font-mono-data font-semibold text-tp-secondary hidden md:table-cell">
-                    {yourRow.pnl}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <TrendIcon trend={yourRow.trend} />
-                  </TableCell>
+                  <TableCell className="text-right font-mono font-semibold text-emerald-400">+{yourRow.roi}%</TableCell>
+                  <TableCell className="text-right font-mono text-white">{yourRow.winRate}%</TableCell>
+                  <TableCell className="text-right font-mono text-white hidden sm:table-cell">{yourRow.totalTrades.toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-mono font-semibold text-emerald-400 hidden md:table-cell">{yourRow.pnl}</TableCell>
+                  <TableCell className="text-right"><TrendIcon trend={yourRow.trend} /></TableCell>
                 </TableRow>
 
                 {/* Other rows */}
                 {leaderboardData.map((row) => (
-                  <TableRow
-                    key={row.rank}
-                    className="border-tp-outline-variant/20 hover:bg-tp-surface-container-low/50"
-                  >
-                    <TableCell className="font-semibold text-tp-on-surface-variant">
-                      #{row.rank}
-                    </TableCell>
+                  <TableRow key={row.rank} className="border-[#1f2937] hover:bg-[#1a2332]/50">
+                    <TableCell className="font-semibold text-gray-400">#{row.rank}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className="size-8 rounded-full bg-tp-surface-container-high flex items-center justify-center text-xs font-bold text-tp-on-surface-variant">
+                        <div className="size-8 rounded-full bg-[#1f2937] flex items-center justify-center text-xs font-bold text-gray-400">
                           {row.initials}
                         </div>
-                        <span className="font-medium text-tp-on-surface text-sm">
-                          {row.name}
-                        </span>
+                        <span className="font-medium text-white text-sm">{row.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-mono-data font-semibold text-tp-secondary">
-                      +{row.roi}%
-                    </TableCell>
-                    <TableCell className="text-right font-mono-data text-tp-on-surface">
-                      {row.winRate}%
-                    </TableCell>
-                    <TableCell className="text-right font-mono-data text-tp-on-surface hidden sm:table-cell">
-                      {row.totalTrades.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right font-mono-data font-semibold text-tp-secondary hidden md:table-cell">
-                      {row.pnl}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <TrendIcon trend={row.trend} />
-                    </TableCell>
+                    <TableCell className="text-right font-mono font-semibold text-emerald-400">+{row.roi}%</TableCell>
+                    <TableCell className="text-right font-mono text-white">{row.winRate}%</TableCell>
+                    <TableCell className="text-right font-mono text-white hidden sm:table-cell">{row.totalTrades.toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-mono font-semibold text-emerald-400 hidden md:table-cell">{row.pnl}</TableCell>
+                    <TableCell className="text-right"><TrendIcon trend={row.trend} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -353,42 +244,36 @@ export function LeaderboardPage() {
         </CardContent>
       </Card>
 
-      {/* ── Your Stats Card ─────────────────────────────────────────────── */}
-      <Card className="glass-card rounded-xl shadow-sm border-l-4 border-l-tp-primary">
+      {/* Your Stats Card */}
+      <Card className="bg-[#111827] border border-[#1f2937] rounded-xl shadow-sm border-l-4 border-l-amber-500">
         <CardContent className="p-5">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-tp-primary/10 flex items-center justify-center">
-                <Trophy className="size-5 text-tp-primary" />
+              <div className="size-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                <Trophy className="size-5 text-amber-500" />
               </div>
               <div>
-                <h3 className="font-semibold text-tp-on-surface text-sm">Your Ranking</h3>
-                <p className="text-tp-on-surface-variant text-xs">Updated in real-time</p>
+                <h3 className="font-semibold text-white text-sm">Your Ranking</h3>
+                <p className="text-gray-400 text-xs">Updated in real-time</p>
               </div>
             </div>
             <div className="flex items-center gap-4 sm:gap-6">
               <div className="text-center">
-                <p className="font-mono-data text-xl font-bold text-tp-primary">#42</p>
-                <p className="text-[10px] text-tp-on-surface-variant uppercase tracking-wider font-medium">
-                  Rank
-                </p>
+                <p className="font-mono text-xl font-bold text-amber-500">#42</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">Rank</p>
               </div>
-              <div className="size-8 w-px bg-tp-outline-variant/30" />
+              <div className="size-8 w-px bg-[#1f2937]" />
               <div className="text-center">
-                <p className="font-mono-data text-xl font-bold text-tp-secondary">Top 5%</p>
-                <p className="text-[10px] text-tp-on-surface-variant uppercase tracking-wider font-medium">
-                  Percentile
-                </p>
+                <p className="font-mono text-xl font-bold text-emerald-400">Top 5%</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">Percentile</p>
               </div>
-              <div className="size-8 w-px bg-tp-outline-variant/30" />
+              <div className="size-8 w-px bg-[#1f2937]" />
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1">
-                  <ArrowUpRight className="size-4 text-tp-secondary" />
-                  <p className="font-mono-data text-xl font-bold text-tp-secondary">+2</p>
+                  <ArrowUpRight className="size-4 text-emerald-400" />
+                  <p className="font-mono text-xl font-bold text-emerald-400">+2</p>
                 </div>
-                <p className="text-[10px] text-tp-on-surface-variant uppercase tracking-wider font-medium">
-                  This Week
-                </p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">This Week</p>
               </div>
             </div>
           </div>

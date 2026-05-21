@@ -126,9 +126,9 @@ function CustomAreaTooltip({
   if (!active || !payload?.length) return null
   const value = payload[0]?.value
   return (
-    <div className="glass-card rounded-lg px-4 py-3 shadow-xl border border-tp-outline-variant/30">
-      <p className="text-xs font-medium text-tp-on-surface-variant">{label}</p>
-      <p className="font-mono-data text-lg font-semibold text-tp-on-surface">
+    <div className="rounded-lg border border-[#1f2937]/60 bg-[#111827] px-4 py-3 shadow-xl">
+      <p className="text-xs font-medium text-gray-400">{label}</p>
+      <p className="font-mono-data text-lg font-semibold text-white">
         {value !== undefined ? (value >= 0 ? '+' : '-') + formatINR(Math.abs(value)) : '—'}
       </p>
     </div>
@@ -242,8 +242,8 @@ export function ReportsPage() {
   const winLossData = useMemo(() => {
     if (closedTrades.length === 0) return []
     return [
-      { name: 'Winning', value: winningTrades.length, color: '#006c49' },
-      { name: 'Losing', value: losingTrades.length, color: '#b61722' },
+      { name: 'Winning', value: winningTrades.length, color: '#10b981' },
+      { name: 'Losing', value: losingTrades.length, color: '#ef4444' },
     ].filter(d => d.value > 0)
   }, [closedTrades, winningTrades, losingTrades])
 
@@ -260,7 +260,7 @@ export function ReportsPage() {
         invested: portfolio.segments.equity.invested,
         currentValue: portfolio.segments.equity.currentValue,
         unrealizedPnl: portfolio.segments.equity.unrealizedPnl,
-        color: '#0058be',
+        color: '#f59e0b',
       },
       {
         name: 'Futures',
@@ -268,7 +268,7 @@ export function ReportsPage() {
         invested: portfolio.segments.futures.invested,
         currentValue: portfolio.segments.futures.currentValue,
         unrealizedPnl: portfolio.segments.futures.unrealizedPnl,
-        color: '#006c49',
+        color: '#10b981',
       },
       {
         name: 'Options',
@@ -276,7 +276,7 @@ export function ReportsPage() {
         invested: portfolio.segments.options.invested,
         currentValue: portfolio.segments.options.currentValue,
         unrealizedPnl: portfolio.segments.options.unrealizedPnl,
-        color: '#b61722',
+        color: '#ef4444',
       },
     ]
 
@@ -290,70 +290,72 @@ export function ReportsPage() {
       value: totalPnl >= 0 ? `+${formatINR(Math.abs(totalPnl))}` : `-${formatINR(Math.abs(totalPnl))}`,
       icon: Landmark,
       positive: totalPnl >= 0,
-      color: totalPnl >= 0 ? 'tp-secondary' : 'tp-tertiary',
+      borderColor: totalPnl >= 0 ? 'border-l-emerald-500' : 'border-l-red-500',
+      textColor: totalPnl >= 0 ? 'text-emerald-500' : 'text-red-500',
+      bgColor: totalPnl >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10',
     },
     {
       label: 'Win Rate',
       value: `${winRate.toFixed(1)}%`,
       icon: Target,
       positive: winRate >= 50,
-      color: winRate >= 50 ? 'tp-secondary' : 'tp-tertiary',
+      borderColor: winRate >= 50 ? 'border-l-emerald-500' : 'border-l-red-500',
+      textColor: winRate >= 50 ? 'text-emerald-500' : 'text-red-500',
+      bgColor: winRate >= 50 ? 'bg-emerald-500/10' : 'bg-red-500/10',
     },
     {
       label: 'Total Trades',
       value: String(trades.length),
       icon: Crosshair,
       positive: true,
-      color: 'tp-primary',
+      borderColor: 'border-l-amber-500',
+      textColor: 'text-amber-500',
+      bgColor: 'bg-amber-500/10',
     },
     {
       label: 'Avg P&L / Trade',
       value: avgPnlPerTrade >= 0 ? `+${formatINR(Math.abs(avgPnlPerTrade))}` : `-${formatINR(Math.abs(avgPnlPerTrade))}`,
       icon: BarChart3,
       positive: avgPnlPerTrade >= 0,
-      color: avgPnlPerTrade >= 0 ? 'tp-secondary' : 'tp-tertiary',
+      borderColor: avgPnlPerTrade >= 0 ? 'border-l-emerald-500' : 'border-l-red-500',
+      textColor: avgPnlPerTrade >= 0 ? 'text-emerald-500' : 'text-red-500',
+      bgColor: avgPnlPerTrade >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10',
     },
   ]
-
-  const colorClasses: Record<string, { bg: string; text: string; border: string }> = {
-    'tp-primary': { bg: 'bg-tp-primary/10', text: 'text-tp-primary', border: 'border-l-tp-primary' },
-    'tp-secondary': { bg: 'bg-tp-secondary/10', text: 'text-tp-secondary', border: 'border-l-tp-secondary' },
-    'tp-tertiary': { bg: 'bg-tp-tertiary/10', text: 'text-tp-tertiary', border: 'border-l-tp-tertiary' },
-  }
 
   // ─── Render ───────────────────────────────────────────────
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-tp-surface p-4 sm:p-6 lg:p-8 space-y-5">
+      <div className="min-h-screen bg-[#0a0e17] p-4 sm:p-6 lg:p-8 space-y-5">
         <div>
-          <Skeleton className="h-8 w-40 mb-2" />
-          <Skeleton className="h-4 w-64" />
+          <Skeleton className="h-8 w-48 mb-2 bg-[#1f2937]" />
+          <Skeleton className="h-4 w-72 bg-[#1f2937]" />
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="glass-card rounded-xl">
+            <Card key={i} className="rounded-xl border border-[#1f2937]/60 bg-[#111827]">
               <CardContent className="p-4">
-                <Skeleton className="h-3 w-20 mb-2" />
-                <Skeleton className="h-6 w-28" />
+                <Skeleton className="h-3 w-20 mb-2 bg-[#1f2937]" />
+                <Skeleton className="h-6 w-28 bg-[#1f2937]" />
               </CardContent>
             </Card>
           ))}
         </div>
-        <Skeleton className="h-80 w-full rounded-xl" />
+        <Skeleton className="h-80 w-full rounded-xl bg-[#1f2937]" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-tp-surface p-4 sm:p-6 lg:p-8 space-y-5">
+    <div className="min-h-screen bg-[#0a0e17] p-4 sm:p-6 lg:p-8 space-y-5">
       {/* ── Page Header ─────────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-tp-on-surface tracking-tight">
-          Reports & Analytics
+        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+          Performance Analytics
         </h1>
-        <p className="text-tp-on-surface-variant mt-1 text-sm">
-          Comprehensive analysis of your trading performance and breakdown.
+        <p className="text-gray-400 mt-1 text-sm">
+          Deep dive into your trading patterns, P&L trends, and segment performance.
         </p>
       </div>
 
@@ -361,7 +363,6 @@ export function ReportsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {stats.map((stat, idx) => {
           const Icon = stat.icon
-          const c = colorClasses[stat.color] || colorClasses['tp-primary']
           return (
             <motion.div
               key={stat.label}
@@ -369,17 +370,17 @@ export function ReportsPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1 }}
             >
-              <Card className={`glass-card rounded-xl shadow-sm border-l-4 ${c.border}`}>
+              <Card className={`rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-sm border-l-4 ${stat.borderColor}`}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                       {stat.label}
                     </p>
-                    <div className={`size-7 rounded-lg ${c.bg} flex items-center justify-center`}>
-                      <Icon className={`size-3.5 ${c.text}`} />
+                    <div className={`size-7 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
+                      <Icon className={`size-3.5 ${stat.textColor}`} />
                     </div>
                   </div>
-                  <p className={`text-lg font-bold font-mono-data ${c.text}`}>
+                  <p className={`text-lg font-bold font-mono-data ${stat.textColor}`}>
                     {stat.value}
                   </p>
                 </CardContent>
@@ -391,19 +392,19 @@ export function ReportsPage() {
 
       {/* ── Empty State ─────────────────────────────────────────── */}
       {trades.length === 0 ? (
-        <Card className="glass-card rounded-xl shadow-sm">
+        <Card className="rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-sm">
           <CardContent className="py-16">
             <div className="flex flex-col items-center justify-center text-center">
-              <div className="size-14 rounded-full bg-tp-surface-container flex items-center justify-center mb-4">
-                <BarChart3 className="size-7 text-tp-on-surface-variant/40" />
+              <div className="size-14 rounded-full bg-[#0d111c] flex items-center justify-center mb-4">
+                <BarChart3 className="size-7 text-gray-400/40" />
               </div>
-              <p className="text-tp-on-surface-variant font-medium text-sm">No trades yet</p>
-              <p className="text-tp-on-surface-variant/60 text-xs mt-1">
+              <p className="text-gray-400 font-medium text-sm">No trades yet</p>
+              <p className="text-gray-400/60 text-xs mt-1">
                 Place your first trade to start tracking performance analytics
               </p>
               <Button
                 size="sm"
-                className="mt-4 gap-1.5 bg-tp-primary hover:bg-tp-primary/90"
+                className="mt-4 gap-1.5 bg-amber-500 text-black font-semibold hover:bg-amber-400"
                 onClick={() => setCurrentPage('trading')}
               >
                 <TrendingUp className="size-3.5" />
@@ -414,20 +415,20 @@ export function ReportsPage() {
         </Card>
       ) : (
         <>
-          {/* ── P&L Over Time Chart ──────────────────────────────── */}
+          {/* ── P&L Curve Chart ──────────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Card className="glass-card rounded-xl shadow-sm">
+            <Card className="rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-sm">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-base font-semibold text-tp-on-surface">
-                      Cumulative P&L Over Time
+                    <CardTitle className="text-base font-semibold text-white">
+                      P&L Curve
                     </CardTitle>
-                    <p className="text-xs text-tp-on-surface-variant mt-0.5">
+                    <p className="text-xs text-gray-400 mt-0.5">
                       Running total of realized profit & loss from closed trades
                     </p>
                   </div>
@@ -435,8 +436,8 @@ export function ReportsPage() {
                     variant="outline"
                     className={`text-[10px] font-semibold border-0 ${
                       totalPnl >= 0
-                        ? 'bg-tp-secondary/10 text-tp-secondary'
-                        : 'bg-tp-tertiary/10 text-tp-tertiary'
+                        ? 'bg-emerald-500/10 text-emerald-500'
+                        : 'bg-red-500/10 text-red-500'
                     }`}
                   >
                     {totalPnl >= 0 ? <ArrowUpRight className="size-3 mr-0.5" /> : <ArrowDownRight className="size-3 mr-0.5" />}
@@ -456,15 +457,15 @@ export function ReportsPage() {
                           id="pnlGradientPositive"
                           x1="0" y1="0" x2="0" y2="1"
                         >
-                          <stop offset="0%" stopColor="#006c49" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#006c49" stopOpacity={0.02} />
+                          <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0.02} />
                         </linearGradient>
                         <linearGradient
                           id="pnlGradientNegative"
                           x1="0" y1="0" x2="0" y2="1"
                         >
-                          <stop offset="0%" stopColor="#b61722" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#b61722" stopOpacity={0.02} />
+                          <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#ef4444" stopOpacity={0.02} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid
@@ -476,13 +477,13 @@ export function ReportsPage() {
                         dataKey="date"
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fontSize: 11, fill: 'var(--color-muted-foreground, #8b8fa3)' }}
+                        tick={{ fontSize: 11, fill: '#9ca3af' }}
                         dy={8}
                       />
                       <YAxis
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fontSize: 11, fill: 'var(--color-muted-foreground, #8b8fa3)' }}
+                        tick={{ fontSize: 11, fill: '#9ca3af' }}
                         tickFormatter={(v: number) =>
                           `₹${Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`
                         }
@@ -491,7 +492,7 @@ export function ReportsPage() {
                       <RechartsTooltip
                         content={<CustomAreaTooltip />}
                         cursor={{
-                          stroke: totalPnl >= 0 ? '#006c49' : '#b61722',
+                          stroke: totalPnl >= 0 ? '#10b981' : '#ef4444',
                           strokeWidth: 1,
                           strokeDasharray: '4 4',
                         }}
@@ -499,14 +500,14 @@ export function ReportsPage() {
                       <Area
                         type="monotone"
                         dataKey="pnl"
-                        stroke={totalPnl >= 0 ? '#006c49' : '#b61722'}
+                        stroke={totalPnl >= 0 ? '#10b981' : '#ef4444'}
                         strokeWidth={2.5}
                         fill={totalPnl >= 0 ? 'url(#pnlGradientPositive)' : 'url(#pnlGradientNegative)'}
                         dot={false}
                         activeDot={{
                           r: 5,
-                          fill: totalPnl >= 0 ? '#006c49' : '#b61722',
-                          stroke: '#ffffff',
+                          fill: totalPnl >= 0 ? '#10b981' : '#ef4444',
+                          stroke: '#f9fafb',
                           strokeWidth: 2,
                         }}
                       />
@@ -514,8 +515,8 @@ export function ReportsPage() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <p className="text-sm text-tp-on-surface-variant">No closed trades to display</p>
-                    <p className="text-xs text-tp-on-surface-variant/60 mt-1">
+                    <p className="text-sm text-gray-400">No closed trades to display</p>
+                    <p className="text-xs text-gray-400/60 mt-1">
                       Close a position to see your P&L trend
                     </p>
                   </div>
@@ -524,20 +525,20 @@ export function ReportsPage() {
             </Card>
           </motion.div>
 
-          {/* ── Win/Loss + Segment Breakdown ─────────────────────── */}
+          {/* ── Win/Loss + Segment Analysis ─────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Win/Loss Distribution */}
+            {/* Win/Loss Ratio */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <Card className="glass-card rounded-xl shadow-sm h-full">
+              <Card className="rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-sm h-full">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-semibold text-tp-on-surface">
-                    Win / Loss Distribution
+                  <CardTitle className="text-base font-semibold text-white">
+                    Win/Loss Ratio
                   </CardTitle>
-                  <p className="text-xs text-tp-on-surface-variant mt-0.5">
+                  <p className="text-xs text-gray-400 mt-0.5">
                     Breakdown of profitable vs losing trades
                   </p>
                 </CardHeader>
@@ -565,23 +566,24 @@ export function ReportsPage() {
                             <RechartsTooltip
                               formatter={(value: number) => `${value} trade${value !== 1 ? 's' : ''}`}
                               contentStyle={{
-                                backgroundColor: 'rgba(30,30,40,0.95)',
-                                border: '1px solid rgba(255,255,255,0.1)',
+                                backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                                border: '1px solid rgba(31, 41, 55, 0.8)',
                                 borderRadius: '8px',
                                 fontSize: '12px',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                                color: '#f9fafb',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
                               }}
-                              itemStyle={{ color: '#e0e0e0' }}
-                              labelStyle={{ color: '#8b8fa3' }}
+                              itemStyle={{ color: '#f9fafb' }}
+                              labelStyle={{ color: '#9ca3af' }}
                             />
                           </PieChart>
                         </ResponsiveContainer>
                         {/* Center Label */}
                         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-xl font-bold leading-none text-tp-on-surface">
+                          <span className="text-xl font-bold leading-none text-white">
                             {winRate.toFixed(0)}%
                           </span>
-                          <span className="text-[10px] uppercase text-tp-on-surface-variant">Win Rate</span>
+                          <span className="text-[10px] uppercase text-gray-400">Win Rate</span>
                         </div>
                       </div>
 
@@ -598,32 +600,32 @@ export function ReportsPage() {
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <span className="size-3 rounded-full" style={{ backgroundColor: item.color }} />
-                                  <span className="text-xs font-semibold text-tp-on-surface">{item.name}</span>
+                                  <span className="text-xs font-semibold text-white">{item.name}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="border-tp-outline-variant/30 text-[10px] text-tp-on-surface-variant">
+                                  <Badge variant="outline" className="border-[#1f2937]/40 text-[10px] text-gray-400">
                                     {item.value} ({percent}%)
                                   </Badge>
                                 </div>
                               </div>
                               <div className="flex items-center justify-between">
-                                <span className="text-xs text-tp-on-surface-variant">Total P&L</span>
-                                <span className={`font-mono-data text-sm font-semibold ${isWin ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                                <span className="text-xs text-gray-400">Total P&L</span>
+                                <span className={`font-mono-data text-sm font-semibold ${isWin ? 'text-emerald-500' : 'text-red-500'}`}>
                                   {pnlForGroup >= 0 ? '+' : '-'}{formatINR(Math.abs(pnlForGroup))}
                                 </span>
                               </div>
                               {isWin && winningTrades.length > 0 && (
                                 <div className="flex items-center justify-between">
-                                  <span className="text-xs text-tp-on-surface-variant">Best Trade</span>
-                                  <span className="font-mono-data text-sm font-semibold text-tp-secondary">
+                                  <span className="text-xs text-gray-400">Best Trade</span>
+                                  <span className="font-mono-data text-sm font-semibold text-emerald-500">
                                     +{formatINR(Math.max(...winningTrades.map(t => t.pnl || 0)))}
                                   </span>
                                 </div>
                               )}
                               {!isWin && losingTrades.length > 0 && (
                                 <div className="flex items-center justify-between">
-                                  <span className="text-xs text-tp-on-surface-variant">Worst Trade</span>
-                                  <span className="font-mono-data text-sm font-semibold text-tp-tertiary">
+                                  <span className="text-xs text-gray-400">Worst Trade</span>
+                                  <span className="font-mono-data text-sm font-semibold text-red-500">
                                     -{formatINR(Math.abs(Math.min(...losingTrades.map(t => t.pnl || 0))))}
                                   </span>
                                 </div>
@@ -635,8 +637,8 @@ export function ReportsPage() {
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <p className="text-sm text-tp-on-surface-variant">No closed trades to analyze</p>
-                      <p className="text-xs text-tp-on-surface-variant/60 mt-1">
+                      <p className="text-sm text-gray-400">No closed trades to analyze</p>
+                      <p className="text-xs text-gray-400/60 mt-1">
                         Win/loss data appears after closing positions
                       </p>
                     </div>
@@ -645,18 +647,18 @@ export function ReportsPage() {
               </Card>
             </motion.div>
 
-            {/* Segment-wise Breakdown */}
+            {/* Segment Analysis */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <Card className="glass-card rounded-xl shadow-sm h-full">
+              <Card className="rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-sm h-full">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-semibold text-tp-on-surface">
-                    Segment-wise Breakdown
+                  <CardTitle className="text-base font-semibold text-white">
+                    Segment Analysis
                   </CardTitle>
-                  <p className="text-xs text-tp-on-surface-variant mt-0.5">
+                  <p className="text-xs text-gray-400 mt-0.5">
                     Performance across Equity, Futures & Options
                   </p>
                 </CardHeader>
@@ -671,7 +673,7 @@ export function ReportsPage() {
                         return (
                           <div
                             key={segment.name}
-                            className="rounded-xl border border-tp-outline-variant/30 p-4 hover:bg-tp-surface-container-low/30 transition-colors"
+                            className="rounded-xl border border-[#1f2937]/40 bg-[#0d111c]/50 p-4 hover:bg-[#0d111c]/80 transition-colors"
                           >
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-2.5">
@@ -684,8 +686,8 @@ export function ReportsPage() {
                                   {segment.name === 'Options' && <Award className="size-4" style={{ color: segment.color }} />}
                                 </div>
                                 <div>
-                                  <span className="text-sm font-semibold text-tp-on-surface">{segment.name}</span>
-                                  <span className="ml-2 text-[10px] text-tp-on-surface-variant">
+                                  <span className="text-sm font-semibold text-white">{segment.name}</span>
+                                  <span className="ml-2 text-[10px] text-gray-400">
                                     {segment.count} position{segment.count !== 1 ? 's' : ''}
                                   </span>
                                 </div>
@@ -694,8 +696,8 @@ export function ReportsPage() {
                                 variant="outline"
                                 className={`text-[10px] font-semibold border-0 ${
                                   isProfit
-                                    ? 'bg-tp-secondary/10 text-tp-secondary'
-                                    : 'bg-tp-tertiary/10 text-tp-tertiary'
+                                    ? 'bg-emerald-500/10 text-emerald-500'
+                                    : 'bg-red-500/10 text-red-500'
                                 }`}
                               >
                                 {isProfit ? '+' : ''}{pnlPercent}%
@@ -704,26 +706,26 @@ export function ReportsPage() {
 
                             <div className="grid grid-cols-3 gap-3">
                               <div>
-                                <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                                   Invested
                                 </p>
-                                <p className="font-mono-data text-sm font-semibold text-tp-on-surface mt-0.5">
+                                <p className="font-mono-data text-sm font-semibold text-white mt-0.5">
                                   {formatINRWhole(segment.invested)}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                                   Current Value
                                 </p>
-                                <p className="font-mono-data text-sm font-semibold text-tp-on-surface mt-0.5">
+                                <p className="font-mono-data text-sm font-semibold text-white mt-0.5">
                                   {formatINRWhole(segment.currentValue)}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                                   Unrealized P&L
                                 </p>
-                                <p className={`font-mono-data text-sm font-semibold mt-0.5 ${isProfit ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                                <p className={`font-mono-data text-sm font-semibold mt-0.5 ${isProfit ? 'text-emerald-500' : 'text-red-500'}`}>
                                   {isProfit ? '+' : '-'}{formatINR(Math.abs(segment.unrealizedPnl))}
                                 </p>
                               </div>
@@ -734,10 +736,10 @@ export function ReportsPage() {
 
                       {/* Segment totals */}
                       {portfolio && (
-                        <div className="rounded-xl bg-tp-surface-container-low/50 p-3 border border-tp-outline-variant/20">
+                        <div className="rounded-xl bg-[#0d111c]/50 p-3 border border-[#1f2937]/30">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-tp-on-surface-variant">Total Unrealized P&L</span>
-                            <span className={`font-mono-data text-sm font-bold ${(portfolio.totalUnrealizedPnl) >= 0 ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                            <span className="text-xs font-medium text-gray-400">Total Unrealized P&L</span>
+                            <span className={`font-mono-data text-sm font-bold ${(portfolio.totalUnrealizedPnl) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                               {(portfolio.totalUnrealizedPnl) >= 0 ? '+' : '-'}{formatINR(Math.abs(portfolio.totalUnrealizedPnl))}
                             </span>
                           </div>
@@ -746,8 +748,8 @@ export function ReportsPage() {
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <p className="text-sm text-tp-on-surface-variant">No segment data yet</p>
-                      <p className="text-xs text-tp-on-surface-variant/60 mt-1">
+                      <p className="text-sm text-gray-400">No segment data yet</p>
+                      <p className="text-xs text-gray-400/60 mt-1">
                         Open positions to see segment breakdown
                       </p>
                     </div>
@@ -757,24 +759,24 @@ export function ReportsPage() {
             </motion.div>
           </div>
 
-          {/* ── Trade History Table ──────────────────────────────── */}
+          {/* ── Trade Log Table ──────────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
-            <Card className="glass-card rounded-xl shadow-sm">
+            <Card className="rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-sm">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-base font-semibold text-tp-on-surface">
-                      Trade History
+                    <CardTitle className="text-base font-semibold text-white">
+                      Trade Log
                     </CardTitle>
-                    <p className="text-xs text-tp-on-surface-variant mt-0.5">
+                    <p className="text-xs text-gray-400 mt-0.5">
                       All executed trades with P&L details
                     </p>
                   </div>
-                  <Badge variant="secondary" className="bg-tp-primary/10 text-tp-primary border-0 text-xs font-semibold">
+                  <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-0 text-xs font-semibold">
                     {trades.length} Trade{trades.length !== 1 ? 's' : ''}
                   </Badge>
                 </div>
@@ -783,15 +785,15 @@ export function ReportsPage() {
                 <div className="overflow-x-auto max-h-96 overflow-y-auto custom-scrollbar">
                   <Table>
                     <TableHeader>
-                      <TableRow className="hover:bg-transparent border-tp-outline-variant/30">
-                        <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider">Symbol</TableHead>
-                        <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider">Side</TableHead>
-                        <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider">Segment</TableHead>
-                        <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">Qty</TableHead>
-                        <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">Fill Price</TableHead>
-                        <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">Total Value</TableHead>
-                        <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">P&L</TableHead>
-                        <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">Date</TableHead>
+                      <TableRow className="hover:bg-transparent border-[#1f2937]/30">
+                        <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider">Symbol</TableHead>
+                        <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider">Side</TableHead>
+                        <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider">Segment</TableHead>
+                        <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">Qty</TableHead>
+                        <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">Fill Price</TableHead>
+                        <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">Total Value</TableHead>
+                        <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">P&L</TableHead>
+                        <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">Date</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -802,18 +804,18 @@ export function ReportsPage() {
                         return (
                           <TableRow
                             key={trade.id}
-                            className="border-tp-outline-variant/20 hover:bg-tp-surface-container-low/50 transition-colors"
+                            className="border-[#1f2937]/30 hover:bg-[#0d111c]/60 transition-colors"
                           >
                             <TableCell>
                               <div className="flex flex-col">
-                                <span className="font-bold text-sm text-tp-primary">{trade.symbol}</span>
+                                <span className="font-bold text-sm text-amber-500">{trade.symbol}</span>
                                 {trade.segment === 'OPTIONS' && trade.strikePrice && (
-                                  <span className="text-[10px] uppercase text-tp-on-surface-variant">
+                                  <span className="text-[10px] uppercase text-gray-400">
                                     {trade.strikePrice} {trade.optionType}
                                   </span>
                                 )}
                                 {trade.segment === 'FUTURES' && (
-                                  <span className="text-[10px] text-tp-on-surface-variant">FUT</span>
+                                  <span className="text-[10px] text-gray-400">FUT</span>
                                 )}
                               </div>
                             </TableCell>
@@ -821,27 +823,27 @@ export function ReportsPage() {
                               <Badge
                                 variant="secondary"
                                 className={`text-[10px] font-semibold border-0 gap-0.5 ${
-                                  isBuy ? 'bg-tp-secondary/10 text-tp-secondary' : 'bg-tp-tertiary/10 text-tp-tertiary'
+                                  isBuy ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
                                 }`}
                               >
                                 {isBuy ? <ArrowUpRight className="size-2.5" /> : <ArrowDownRight className="size-2.5" />}
                                 {isBuy ? 'Buy' : 'Sell'}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-xs text-tp-on-surface-variant">{trade.segment}</TableCell>
-                            <TableCell className="font-mono-data text-sm text-right text-tp-on-surface">{trade.quantity}</TableCell>
-                            <TableCell className="font-mono-data text-sm text-right text-tp-on-surface-variant">
+                            <TableCell className="text-xs text-gray-400">{trade.segment}</TableCell>
+                            <TableCell className="font-mono-data text-sm text-right text-white">{trade.quantity}</TableCell>
+                            <TableCell className="font-mono-data text-sm text-right text-gray-400">
                               {formatINR(trade.fillPrice)}
                             </TableCell>
-                            <TableCell className="font-mono-data text-sm text-right text-tp-on-surface">
+                            <TableCell className="font-mono-data text-sm text-right text-white">
                               {formatINRWhole(trade.totalValue)}
                             </TableCell>
                             <TableCell className={`font-mono-data text-sm font-semibold text-right ${
-                              !hasPnl ? 'text-tp-on-surface-variant' : isPositive ? 'text-tp-secondary' : 'text-tp-tertiary'
+                              !hasPnl ? 'text-gray-400' : isPositive ? 'text-emerald-500' : 'text-red-500'
                             }`}>
                               {!hasPnl ? '—' : `${isPositive ? '+' : '-'}${formatINR(Math.abs(trade.pnl!))}`}
                             </TableCell>
-                            <TableCell className="text-xs text-tp-on-surface-variant text-right">
+                            <TableCell className="text-xs text-gray-400 text-right">
                               {new Date(trade.executedAt).toLocaleDateString('en-IN', {
                                 day: '2-digit',
                                 month: 'short',
@@ -865,38 +867,38 @@ export function ReportsPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
             >
-              <Card className="glass-card rounded-xl shadow-sm border-l-4 border-l-tp-primary">
+              <Card className="rounded-xl border border-[#1f2937]/60 bg-[#111827] shadow-sm border-l-4 border-l-amber-500">
                 <CardContent className="p-4">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                         Gross Profit
                       </p>
-                      <p className="font-mono-data text-sm font-bold text-tp-secondary mt-0.5">
+                      <p className="font-mono-data text-sm font-bold text-emerald-500 mt-0.5">
                         +{formatINR(winningTrades.reduce((s, t) => s + (t.pnl || 0), 0))}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                         Gross Loss
                       </p>
-                      <p className="font-mono-data text-sm font-bold text-tp-tertiary mt-0.5">
+                      <p className="font-mono-data text-sm font-bold text-red-500 mt-0.5">
                         -{formatINR(Math.abs(losingTrades.reduce((s, t) => s + (t.pnl || 0), 0)))}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                         Total Brokerage
                       </p>
-                      <p className="font-mono-data text-sm font-bold text-tp-on-surface mt-0.5">
+                      <p className="font-mono-data text-sm font-bold text-white mt-0.5">
                         {formatINR(trades.reduce((s, t) => s + t.brokerage, 0))}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                         Net P&L
                       </p>
-                      <p className={`font-mono-data text-sm font-bold mt-0.5 ${totalPnl >= 0 ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                      <p className={`font-mono-data text-sm font-bold mt-0.5 ${totalPnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                         {totalPnl >= 0 ? '+' : '-'}{formatINR(Math.abs(totalPnl))}
                       </p>
                     </div>

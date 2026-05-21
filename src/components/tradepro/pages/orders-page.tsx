@@ -4,8 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -120,12 +118,12 @@ function formatDate(isoDate: string): string {
 
 function StatusBadge({ status }: { status: string }) {
   const variants: Record<string, string> = {
-    PENDING: 'bg-amber-100 text-amber-700 border-amber-200',
-    PARTIALLY_FILLED: 'bg-blue-50 text-blue-700 border-blue-200',
-    FILLED: 'bg-tp-secondary/10 text-tp-secondary border-tp-secondary/20',
-    CANCELLED: 'bg-tp-tertiary/10 text-tp-tertiary border-tp-tertiary/20',
-    REJECTED: 'bg-red-100 text-red-700 border-red-200',
-    EXPIRED: 'bg-gray-100 text-gray-700 border-gray-200',
+    PENDING: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    PARTIALLY_FILLED: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    FILLED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    CANCELLED: 'bg-red-500/10 text-red-400 border-red-500/20',
+    REJECTED: 'bg-red-500/10 text-red-400 border-red-500/20',
+    EXPIRED: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
   }
   return (
     <Badge variant="outline" className={`text-[10px] font-semibold ${variants[status] || ''}`}>
@@ -156,102 +154,102 @@ function OrderDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg bg-[#111827] border-[#1f2937] text-white">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span className={`text-lg ${isBuy ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+            <span className={`text-lg font-bold ${isBuy ? 'text-emerald-400' : 'text-red-400'}`}>
               {isBuy ? 'BUY' : 'SELL'}
             </span>
-            <span className="font-bold text-tp-primary">{order.symbol}</span>
+            <span className="font-bold text-white">{order.symbol}</span>
             <StatusBadge status={order.status} />
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
           {/* Trade Summary */}
-          <div className={`rounded-xl p-4 ${isBuy ? 'bg-tp-secondary/5 border border-tp-secondary/20' : 'bg-tp-tertiary/5 border border-tp-tertiary/20'}`}>
+          <div className={`rounded-xl p-4 ${isBuy ? 'bg-emerald-500/5 border border-emerald-500/20' : 'bg-red-500/5 border border-red-500/20'}`}>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant mb-1">Symbol</p>
-                <p className="font-bold text-tp-on-surface">{order.symbol}</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">Symbol</p>
+                <p className="font-bold text-white">{order.symbol}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant mb-1">Trade Type</p>
-                <p className={`font-bold ${isBuy ? 'text-tp-secondary' : 'text-tp-tertiary'}`}>
+                <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">Trade Type</p>
+                <p className={`font-bold ${isBuy ? 'text-emerald-400' : 'text-red-400'}`}>
                   {isBuy ? 'BUY' : 'SELL'}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant mb-1">Entry Time</p>
-                <p className="text-sm font-mono text-tp-on-s-surface">{formatDate(order.placedAt)} {formatTime(order.placedAt)}</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">Entry Time</p>
+                <p className="text-sm font-mono text-gray-300">{formatDate(order.placedAt)} {formatTime(order.placedAt)}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant mb-1">Exit Time</p>
-                <p className="text-sm font-mono text-tp-on-surface">
+                <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">Exit Time</p>
+                <p className="text-sm font-mono text-gray-300">
                   {order.filledAt ? `${formatDate(order.filledAt)} ${formatTime(order.filledAt)}` : '—'}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant mb-1">Quantity</p>
-                <p className="text-sm font-mono font-bold text-tp-on-surface">{order.quantity}</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">Quantity</p>
+                <p className="text-sm font-mono font-bold text-white">{order.quantity}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant mb-1">Entry Price</p>
-                <p className="text-sm font-mono font-bold text-tp-on-surface">{formatINR(order.fillPrice ?? order.price)}</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">Entry Price</p>
+                <p className="text-sm font-mono font-bold text-white">{formatINR(order.fillPrice ?? order.price)}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant mb-1">Used Capital</p>
-                <p className="text-sm font-mono font-bold text-tp-on-surface">{formatINR(order.totalValue)}</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">Used Capital</p>
+                <p className="text-sm font-mono font-bold text-white">{formatINR(order.totalValue)}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant mb-1">Brokerage</p>
-                <p className="text-sm font-mono text-tp-on-surface-variant">{formatINR(order.brokerage)}</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">Brokerage</p>
+                <p className="text-sm font-mono text-gray-400">{formatINR(order.brokerage)}</p>
               </div>
             </div>
           </div>
 
           {/* Order Details */}
-          <div className="rounded-xl p-4 bg-tp-surface-container-low border border-tp-outline-variant/20 space-y-3">
+          <div className="rounded-xl p-4 bg-[#0a0e17] border border-[#1f2937] space-y-3">
             <div className="flex items-center gap-2 mb-2">
-              <Hash className="size-4 text-tp-primary" />
-              <span className="text-sm font-bold text-tp-on-surface">Order Details</span>
+              <Hash className="size-4 text-amber-500" />
+              <span className="text-sm font-bold text-white">Order Details</span>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant">Order ID</p>
-                <p className="font-mono text-xs text-tp-on-surface-variant">#{order.id.slice(-8).toUpperCase()}</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-400">Order ID</p>
+                <p className="font-mono text-xs text-gray-400">#{order.id.slice(-8).toUpperCase()}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant">Order Type</p>
-                <p className="font-mono text-xs">{order.orderType}</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-400">Order Type</p>
+                <p className="font-mono text-xs text-gray-300">{order.orderType}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant">Segment</p>
-                <p className="text-xs">{order.segment}</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-400">Segment</p>
+                <p className="text-xs text-gray-300">{order.segment}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant">Product</p>
-                <p className="text-xs">{order.productType}</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-400">Product</p>
+                <p className="text-xs text-gray-300">{order.productType}</p>
               </div>
               {order.optionType && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant">Option Type</p>
-                  <p className="text-xs font-bold">{order.optionType}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400">Option Type</p>
+                  <p className="text-xs font-bold text-white">{order.optionType}</p>
                 </div>
               )}
               {order.strikePrice && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant">Strike Price</p>
-                  <p className="text-xs font-mono">{formatINR(order.strikePrice)}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400">Strike Price</p>
+                  <p className="text-xs font-mono text-gray-300">{formatINR(order.strikePrice)}</p>
                 </div>
               )}
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant">Order Price</p>
-                <p className="text-xs font-mono">{formatINR(order.price)}</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-400">Order Price</p>
+                <p className="text-xs font-mono text-gray-300">{formatINR(order.price)}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-tp-on-surface-variant">Fill Price</p>
-                <p className="text-xs font-mono">{order.fillPrice ? formatINR(order.fillPrice) : '—'}</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-400">Fill Price</p>
+                <p className="text-xs font-mono text-gray-300">{order.fillPrice ? formatINR(order.fillPrice) : '—'}</p>
               </div>
             </div>
           </div>
@@ -335,12 +333,12 @@ export function OrdersPage() {
   const OrderTable = ({ data, showAction = false }: { data: OrderData[]; showAction?: boolean }) => {
     if (data.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="size-12 rounded-full bg-tp-surface-container flex items-center justify-center mb-3">
-            <FileText className="size-6 text-tp-on-surface-variant/40" />
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="size-16 rounded-full bg-[#111827] border border-[#1f2937] flex items-center justify-center mb-4">
+            <FileText className="size-7 text-gray-500" />
           </div>
-          <p className="text-tp-on-surface-variant font-medium text-sm">No orders found</p>
-          <p className="text-tp-on-surface-variant/60 text-xs mt-1">Your orders will appear here</p>
+          <p className="text-white font-semibold text-sm">No orders found</p>
+          <p className="text-gray-400 text-xs mt-1.5">Your orders will appear here</p>
         </div>
       )
     }
@@ -349,14 +347,14 @@ export function OrdersPage() {
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent border-tp-outline-variant/30">
-              <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider">Date</TableHead>
-              <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider">Symbol</TableHead>
-              <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider">Side</TableHead>
-              <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">Qty</TableHead>
-              <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">Fill Price</TableHead>
-              <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">Value</TableHead>
-              <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider">Status</TableHead>
+            <TableRow className="hover:bg-transparent border-[#1f2937] bg-[#0a0e17]">
+              <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider">Date</TableHead>
+              <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider">Symbol</TableHead>
+              <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider">Side</TableHead>
+              <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">Qty</TableHead>
+              <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">Fill Price</TableHead>
+              <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">Value</TableHead>
+              <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -365,34 +363,34 @@ export function OrdersPage() {
               return (
                 <TableRow
                   key={order.id}
-                  className="border-tp-outline-variant/20 hover:bg-tp-surface-container-low/50 cursor-pointer"
+                  className="border-[#1f2937] hover:bg-[#1f2937]/50 cursor-pointer"
                   onClick={() => handleOrderClick(order)}
                 >
-                  <TableCell className="text-xs text-tp-on-surface-variant">
+                  <TableCell className="text-xs text-gray-400">
                     <div>{formatDate(order.placedAt)}</div>
                     <div className="font-mono-data text-[10px]">{formatTime(order.placedAt)}</div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-bold text-sm text-tp-primary">{order.symbol}</span>
+                      <span className="font-bold text-sm text-white">{order.symbol}</span>
                       {order.optionType && order.strikePrice && (
-                        <span className="text-[10px] text-tp-on-surface-variant">
+                        <span className="text-[10px] text-gray-400">
                           {order.strikePrice} {order.optionType}
                         </span>
                       )}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={`text-[10px] font-semibold border-0 gap-0.5 ${isBuy ? 'bg-tp-secondary/10 text-tp-secondary' : 'bg-tp-tertiary/10 text-tp-tertiary'}`}>
+                    <Badge variant="secondary" className={`text-[10px] font-semibold border-0 gap-0.5 ${isBuy ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
                       {isBuy ? <ArrowUpRight className="size-2.5" /> : <ArrowDownRight className="size-2.5" />}
                       {order.tradeDirection}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono-data text-sm text-right">{order.quantity}</TableCell>
-                  <TableCell className="font-mono-data text-sm text-right">
+                  <TableCell className="font-mono-data text-sm text-right text-white">{order.quantity}</TableCell>
+                  <TableCell className="font-mono-data text-sm text-right text-gray-300">
                     {order.fillPrice ? formatINR(order.fillPrice) : '—'}
                   </TableCell>
-                  <TableCell className="font-mono-data text-sm text-right text-tp-on-surface-variant">
+                  <TableCell className="font-mono-data text-sm text-right text-gray-400">
                     {formatINR(order.totalValue)}
                   </TableCell>
                   <TableCell><StatusBadge status={order.status} /></TableCell>
@@ -409,12 +407,12 @@ export function OrdersPage() {
   const TradeTable = ({ data }: { data: TradeData[] }) => {
     if (data.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="size-12 rounded-full bg-tp-surface-container flex items-center justify-center mb-3">
-            <Briefcase className="size-6 text-tp-on-surface-variant/40" />
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="size-16 rounded-full bg-[#111827] border border-[#1f2937] flex items-center justify-center mb-4">
+            <Briefcase className="size-7 text-gray-500" />
           </div>
-          <p className="text-tp-on-surface-variant font-medium text-sm">No trades yet</p>
-          <p className="text-tp-on-surface-variant/60 text-xs mt-1">Your executed trades will appear here</p>
+          <p className="text-white font-semibold text-sm">No trades yet</p>
+          <p className="text-gray-400 text-xs mt-1.5">Your executed trades will appear here</p>
         </div>
       )
     }
@@ -423,45 +421,45 @@ export function OrdersPage() {
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent border-tp-outline-variant/30">
-              <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider">Time</TableHead>
-              <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider">Symbol</TableHead>
-              <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider">Side</TableHead>
-              <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">Qty</TableHead>
-              <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">Fill Price</TableHead>
-              <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">Value</TableHead>
-              <TableHead className="text-tp-on-surface-variant font-semibold text-xs uppercase tracking-wider text-right">P&L</TableHead>
+            <TableRow className="hover:bg-transparent border-[#1f2937] bg-[#0a0e17]">
+              <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider">Time</TableHead>
+              <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider">Symbol</TableHead>
+              <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider">Side</TableHead>
+              <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">Qty</TableHead>
+              <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">Fill Price</TableHead>
+              <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">Value</TableHead>
+              <TableHead className="text-gray-400 font-semibold text-xs uppercase tracking-wider text-right">P&L</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.map((trade) => {
               const isPositive = (trade.pnl ?? 0) >= 0
               return (
-                <TableRow key={trade.id} className="border-tp-outline-variant/20 hover:bg-tp-surface-container-low/50">
-                  <TableCell className="text-xs text-tp-on-surface-variant">
+                <TableRow key={trade.id} className="border-[#1f2937] hover:bg-[#1f2937]/50">
+                  <TableCell className="text-xs text-gray-400">
                     <div>{formatDate(trade.executedAt)}</div>
                     <div className="font-mono-data text-[10px]">{formatTime(trade.executedAt)}</div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-bold text-sm text-tp-primary">{trade.symbol}</span>
+                      <span className="font-bold text-sm text-white">{trade.symbol}</span>
                       {trade.optionType && trade.strikePrice && (
-                        <span className="text-[10px] text-tp-on-surface-variant">
+                        <span className="text-[10px] text-gray-400">
                           {trade.strikePrice} {trade.optionType}
                         </span>
                       )}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={`text-[10px] font-semibold border-0 gap-0.5 ${trade.tradeDirection === 'BUY' ? 'bg-tp-secondary/10 text-tp-secondary' : 'bg-tp-tertiary/10 text-tp-tertiary'}`}>
+                    <Badge variant="secondary" className={`text-[10px] font-semibold border-0 gap-0.5 ${trade.tradeDirection === 'BUY' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
                       {trade.tradeDirection === 'BUY' ? <ArrowUpRight className="size-2.5" /> : <ArrowDownRight className="size-2.5" />}
                       {trade.tradeDirection}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono-data text-sm text-right">{trade.quantity}</TableCell>
-                  <TableCell className="font-mono-data text-sm text-right">{formatINR(trade.fillPrice)}</TableCell>
-                  <TableCell className="font-mono-data text-sm text-right text-tp-on-surface-variant">{formatINR(trade.totalValue)}</TableCell>
-                  <TableCell className={`font-mono-data text-sm font-semibold text-right ${trade.pnl !== null ? (isPositive ? 'text-tp-secondary' : 'text-tp-tertiary') : 'text-tp-on-surface-variant'}`}>
+                  <TableCell className="font-mono-data text-sm text-right text-white">{trade.quantity}</TableCell>
+                  <TableCell className="font-mono-data text-sm text-right text-gray-300">{formatINR(trade.fillPrice)}</TableCell>
+                  <TableCell className="font-mono-data text-sm text-right text-gray-400">{formatINR(trade.totalValue)}</TableCell>
+                  <TableCell className={`font-mono-data text-sm font-semibold text-right ${trade.pnl !== null ? (isPositive ? 'text-emerald-400' : 'text-red-400') : 'text-gray-400'}`}>
                     {trade.pnl !== null
                       ? `${isPositive ? '+' : '-'}${formatINR(Math.abs(trade.pnl))}`
                       : '—'
@@ -477,35 +475,35 @@ export function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-tp-surface p-4 sm:p-6 lg:p-8 space-y-5">
+    <div className="min-h-screen bg-[#0a0e17] p-4 sm:p-6 lg:p-8 space-y-5">
       {/* ── Page Header ─────────────────────────────────────────────── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-tp-on-surface tracking-tight">
-            Orders & Trades
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            Order History
           </h1>
-          <p className="text-tp-on-surface-variant mt-1 text-sm">
-            Track and manage your trading orders and execution history.
+          <p className="text-gray-400 mt-1 text-sm">
+            View your complete order and trade execution history.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[140px] h-9 bg-tp-surface-container-lowest border-tp-outline-variant/40 text-sm">
+            <SelectTrigger className="w-[140px] h-9 bg-[#111827] border-[#1f2937] text-sm text-white">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Orders</SelectItem>
-              <SelectItem value="filled">Filled</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
+            <SelectContent className="bg-[#111827] border-[#1f2937]">
+              <SelectItem value="all" className="text-gray-300 focus:bg-[#1f2937] focus:text-white">All Orders</SelectItem>
+              <SelectItem value="filled" className="text-gray-300 focus:bg-[#1f2937] focus:text-white">Filled</SelectItem>
+              <SelectItem value="cancelled" className="text-gray-300 focus:bg-[#1f2937] focus:text-white">Cancelled</SelectItem>
             </SelectContent>
           </Select>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tp-outline" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-500" />
             <Input
               placeholder="Search orders..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 w-48 sm:w-56 bg-tp-surface-container-lowest border-tp-outline-variant/40 text-sm"
+              className="pl-9 h-9 w-48 sm:w-56 bg-[#111827] border-[#1f2937] text-sm text-white placeholder:text-gray-500 focus:border-amber-500/50"
             />
           </div>
         </div>
@@ -514,30 +512,24 @@ export function OrdersPage() {
       {/* ── Order Stats ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: 'Total Orders', value: String(orders.length), icon: ClipboardList, color: 'tp-primary' },
-          { label: 'Filled', value: String(filledCount), icon: CheckCircle2, color: 'tp-secondary' },
-          { label: 'Cancelled', value: String(orders.filter(o => o.status === 'CANCELLED' || o.status === 'REJECTED').length), icon: XCircle, color: 'tp-tertiary' },
-          { label: 'Total Volume', value: totalVolume >= 100000 ? `₹${(totalVolume / 100000).toFixed(1)}L` : `₹${totalVolume.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, icon: IndianRupee, color: 'tp-primary' },
+          { label: 'Total Orders', value: String(orders.length), icon: ClipboardList, borderColor: 'border-l-amber-500', iconBg: 'bg-amber-500/10', iconColor: 'text-amber-500' },
+          { label: 'Filled', value: String(filledCount), icon: CheckCircle2, borderColor: 'border-l-emerald-500', iconBg: 'bg-emerald-500/10', iconColor: 'text-emerald-400' },
+          { label: 'Cancelled', value: String(orders.filter(o => o.status === 'CANCELLED' || o.status === 'REJECTED').length), icon: XCircle, borderColor: 'border-l-red-500', iconBg: 'bg-red-500/10', iconColor: 'text-red-400' },
+          { label: 'Total Volume', value: totalVolume >= 100000 ? `₹${(totalVolume / 100000).toFixed(1)}L` : `₹${totalVolume.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, icon: IndianRupee, borderColor: 'border-l-amber-500', iconBg: 'bg-amber-500/10', iconColor: 'text-amber-500' },
         ].map((stat) => {
           const Icon = stat.icon
-          const colorClasses: Record<string, { bg: string; text: string; border: string }> = {
-            'tp-primary': { bg: 'bg-tp-primary/10', text: 'text-tp-primary', border: 'border-l-tp-primary' },
-            'tp-secondary': { bg: 'bg-tp-secondary/10', text: 'text-tp-secondary', border: 'border-l-tp-secondary' },
-            'tp-tertiary': { bg: 'bg-tp-tertiary/10', text: 'text-tp-tertiary', border: 'border-l-tp-tertiary' },
-          }
-          const c = colorClasses[stat.color] || colorClasses['tp-primary']
           return (
-            <Card key={stat.label} className={`glass-card rounded-xl shadow-sm border-l-4 ${c.border}`}>
+            <Card key={stat.label} className={`bg-[#111827] border border-[#1f2937] border-l-4 ${stat.borderColor} rounded-xl shadow-sm`}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-tp-on-surface-variant">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                     {stat.label}
                   </p>
-                  <div className={`size-7 rounded-lg ${c.bg} flex items-center justify-center`}>
-                    <Icon className={`size-3.5 ${c.text}`} />
+                  <div className={`size-7 rounded-lg ${stat.iconBg} flex items-center justify-center`}>
+                    <Icon className={`size-3.5 ${stat.iconColor}`} />
                   </div>
                 </div>
-                <p className="text-lg font-bold font-mono-data text-tp-on-surface">
+                <p className="text-lg font-bold font-mono-data text-white">
                   {stat.value}
                 </p>
               </CardContent>
@@ -547,40 +539,49 @@ export function OrdersPage() {
       </div>
 
       {/* ── Orders Table with Tabs ──────────────────────────────────── */}
-      <Card className="glass-card rounded-xl shadow-sm">
+      <Card className="bg-[#111827] border border-[#1f2937] rounded-xl shadow-sm">
         <Tabs defaultValue="index">
-          <CardHeader className="pb-0">
+          <div className="p-6 pb-0">
             <div className="flex items-center justify-between">
-              <TabsList className="bg-muted/50">
-                <TabsTrigger value="index" className="text-xs font-semibold gap-1.5">
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">
+              <TabsList className="bg-[#0a0e17] border border-[#1f2937]">
+                <TabsTrigger
+                  value="index"
+                  className="text-xs font-semibold gap-1.5 data-[state=active]:bg-amber-500 data-[state=active]:text-[#0a0e17] data-[state=active]:shadow-amber-500/20 data-[state=active]:shadow-sm text-gray-400"
+                >
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500/30 text-amber-500">
                     Index
                   </Badge>
                   Index ({indexOrders.length})
                 </TabsTrigger>
-                <TabsTrigger value="stock" className="text-xs font-semibold gap-1.5">
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-secondary/30 text-secondary">
+                <TabsTrigger
+                  value="stock"
+                  className="text-xs font-semibold gap-1.5 data-[state=active]:bg-amber-500 data-[state=active]:text-[#0a0e17] data-[state=active]:shadow-amber-500/20 data-[state=active]:shadow-sm text-gray-400"
+                >
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-500/30 text-emerald-500">
                     Stock
                   </Badge>
                   Stock ({stockOrders.length})
                 </TabsTrigger>
-                <TabsTrigger value="trades" className="text-xs font-semibold gap-1.5">
+                <TabsTrigger
+                  value="trades"
+                  className="text-xs font-semibold gap-1.5 data-[state=active]:bg-amber-500 data-[state=active]:text-[#0a0e17] data-[state=active]:shadow-amber-500/20 data-[state=active]:shadow-sm text-gray-400"
+                >
                   <IndianRupee className="size-3.5" />
                   Trade Log ({trades.length})
                 </TabsTrigger>
               </TabsList>
             </div>
-          </CardHeader>
-          <CardContent className="pt-4">
+          </div>
+          <div className="p-6 pt-4">
             {loadingOrders || loadingTrades ? (
               <div className="space-y-4">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="flex items-center gap-4">
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-20 bg-[#1f2937]" />
+                    <Skeleton className="h-4 w-24 bg-[#1f2937]" />
+                    <Skeleton className="h-4 w-16 bg-[#1f2937]" />
+                    <Skeleton className="h-4 w-16 bg-[#1f2937]" />
+                    <Skeleton className="h-4 w-24 bg-[#1f2937]" />
                   </div>
                 ))}
               </div>
@@ -595,10 +596,10 @@ export function OrdersPage() {
                 <TabsContent value="trades">
                   <div className="space-y-4">
                     <div className="flex items-center gap-4 mb-3">
-                      <Badge variant="outline" className="text-xs border-primary/30 text-primary">
+                      <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-500">
                         Index ({indexTrades.length})
                       </Badge>
-                      <Badge variant="outline" className="text-xs border-secondary/30 text-secondary">
+                      <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-500">
                         Stock ({stockTrades.length})
                       </Badge>
                     </div>
@@ -607,7 +608,7 @@ export function OrdersPage() {
                 </TabsContent>
               </>
             )}
-          </CardContent>
+          </div>
         </Tabs>
       </Card>
 
