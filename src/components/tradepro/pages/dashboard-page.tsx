@@ -138,11 +138,7 @@ const fallbackIndices: IndexData[] = [
   { id: '3', symbol: 'BANKNIFTY', name: 'BANK NIFTY', currentPrice: 47210.45, change: -82.10, changePercent: -0.17, isEnabled: true },
 ]
 
-const fallbackTrades: TradeData[] = [
-  { id: '1', symbol: 'RELIANCE', tradeDirection: 'BUY', segment: 'EQUITY', fillPrice: 2950.00, quantity: 50, totalValue: 147500, brokerage: 73.75, pnl: null, pnlPercent: null, executedAt: new Date(Date.now() - 120000).toISOString() },
-  { id: '2', symbol: 'HDFCBANK', tradeDirection: 'SELL', segment: 'EQUITY', fillPrice: 1420.00, quantity: 100, totalValue: 142000, brokerage: 71, pnl: null, pnlPercent: null, executedAt: new Date(Date.now() - 900000).toISOString() },
-  { id: '3', symbol: 'TCS', tradeDirection: 'BUY', segment: 'EQUITY', fillPrice: 4100.00, quantity: 20, totalValue: 82000, brokerage: 41, pnl: null, pnlPercent: null, executedAt: new Date(Date.now() - 3600000).toISOString() },
-]
+const fallbackTrades: TradeData[] = []
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -343,8 +339,8 @@ export function DashboardPage() {
         ...(portfolioData.segments.options.positions || []),
       ]
 
-  // Trades for activity feed
-  const displayTrades = trades.length > 0 ? trades : fallbackTrades
+  // Trades for activity feed - ONLY real data, no fallback
+  const displayTrades = trades
 
   // Greeting
   const greeting = () => {
