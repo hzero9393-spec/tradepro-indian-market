@@ -271,11 +271,90 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
     }
   }, [open, symbol, range, fetchChart])
 
-  // Generate option chain based on spot price
-  const optionChain = useMemo(() => {
-    if (!detail) return []
-    return generateOptionChain(detail.currentPrice, detail.strikeInterval)
-  }, [detail])
+  // Real option chain from API
+  const [optionChainData, setOptionChainData] = useState<OptionRow[]>([])
+  const [optionChainLoading, setOptionChainLoading] = useState(false)
+
+  const fetchOptionChain = useCallback(async () => {
+    if (!symbol) return
+    setOptionChainLoading(true)
+    try {
+      const res = await fetch(`/api/options/chain/${symbol}`)
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success && json.data?.chain?.length > 0) {
+          const apiData = json.data
+          const spot = apiData.spot || detail?.currentPrice || 0
+          const strikeInterval = detail?.strikeInterval || 50
+          
+          // Group options by strike price
+          const strikeMap = new Map<number, { ce?: Record<string, unknown>; pe?: Record<string, unknown> }>()
+          for (const opt of apiData.chain as Record<string, unknown>[]) {
+            const strike = opt.strikePrice as number
+            if (!strikeMap.has(strike)) strikeMap.set(strike, {})
+            const type = opt.optionType as string
+            if (type === 'CE') strikeMap.get(strike)!.ce = opt
+            else strikeMap.get(strike)!.pe = opt
+          }
+          
+          const rows: OptionRow[] = []
+          for (const [strike, data] of strikeMap) {
+            const diffFromSpot = strike - spot
+            const isATM = Math.abs(diffFromSpot) < strikeInterval / 2
+            
+            // If we have real data, use it; otherwise generate estimates
+            const ceOI = (data.ce?.openInterest as number) || (isATM ? 80 : 40) * (0.5 + Math.random())
+            const peOI = (data.pe?.openInterest as number) || (isATM ? 85 : 45) * (0.5 + Math.random())
+            
+            rows.push({
+              strike,
+              ceOI: Number(ceOI.toFixed(1)),
+              ceOIChngPct: Number(((data.ce?.oiChangePercent as number) || (Math.random() - 0.4) * 30).toFixed(1)),
+              ceLTP: Number(((data.ce?.ltp as number) || 0).toFixed(2)),
+              ceChngPct: Number(((data.ce?.changePercent as number) || 0).toFixed(1)),
+              ceIV: Number(((data.ce?.impliedVolatility as number) || 0).toFixed(1)),
+              ceVolume: Math.round((data.ce?.volume as number) || 0),
+              peVolume: Math.round((data.pe?.volume as number) || 0),
+              peIV: Number(((data.pe?.impliedVolatility as number) || 0).toFixed(1)),
+              peChngPct: Number(((data.pe?.changePercent as number) || 0).toFixed(1)),
+              peLTP: Number(((data.pe?.ltp as number) || 0).toFixed(2)),
+              peOIChngPct: Number(((data.pe?.oiChangePercent as number) || (Math.random() - 0.4) * 30).toFixed(1)),
+              peOI: Number(peOI.toFixed(1)),
+            })
+          }
+          
+          rows.sort((a, b) => a.strike - b.strike)
+          setOptionChainData(rows)
+        } else {
+          // Fallback to generated data if API returns empty
+          if (detail) {
+            setOptionChainData(generateOptionChain(detail.currentPrice, detail.strikeInterval))
+          }
+        }
+      } else {
+        // Fallback on error
+        if (detail) {
+          setOptionChainData(generateOptionChain(detail.currentPrice, detail.strikeInterval))
+        }
+      }
+    } catch {
+      // Fallback on network error
+      if (detail) {
+        setOptionChainData(generateOptionChain(detail.currentPrice, detail.strikeInterval))
+      }
+    } finally {
+      setOptionChainLoading(false)
+    }
+  }, [symbol, detail])
+
+  // Fetch option chain when drawer opens or when user switches to optionChain tab
+  useEffect(() => {
+    if (open && symbol && (activeTab === 'optionChain' || activeTab === 'chart')) {
+      fetchOptionChain()
+    }
+  }, [open, symbol, activeTab, fetchOptionChain])
+
+  const optionChain = optionChainData
 
   // Option chain stats
   const optionStats = useMemo(() => {
@@ -367,6 +446,15 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
                 </>
               )}
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-tp-primary border-tp-primary/30 hover:bg-tp-primary/10 hover:text-tp-primary font-semibold shrink-0"
+              onClick={() => setActiveTab('optionChain')}
+            >
+              <GitBranch className="size-4" />
+              Option Chain
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -604,6 +692,20 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
                     : '⚖️ Neutral Sentiment — Balanced option writing'
                 }
               </div>
+
+              {/* Loading State */}
+              {optionChainLoading && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="flex gap-1.5">
+                      <div className="size-2 rounded-full bg-tp-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="size-2 rounded-full bg-tp-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="size-2 rounded-full bg-tp-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                    <span className="text-xs text-tp-on-surface-variant">Loading option chain...</span>
+                  </div>
+                </div>
+              )}
 
               {/* Option Chain Table */}
               <div className="glass-card rounded-xl overflow-hidden">
