@@ -77,8 +77,15 @@ export function IndexTicker() {
             {indices.map((idx) => {
               const isPositive = idx.change >= 0
               return (
-                <div key={idx.symbol} className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[10px] font-bold text-tp-on-surface-variant uppercase tracking-wider">
+                <div
+                  key={idx.symbol}
+                  className="flex items-center gap-1.5 shrink-0 cursor-pointer hover:bg-tp-primary/5 px-1.5 py-0.5 rounded transition-colors"
+                  onClick={() => {
+                    // Dispatch a custom event that the dashboard listens to
+                    window.dispatchEvent(new CustomEvent('openIndexDetail', { detail: { symbol: idx.symbol } }))
+                  }}
+                >
+                  <span className="text-[10px] font-bold text-tp-on-surface-variant uppercase tracking-wider hover:text-tp-primary transition-colors">
                     {idx.symbol}
                   </span>
                   <span className="text-[11px] font-mono-data font-semibold text-tp-on-surface">

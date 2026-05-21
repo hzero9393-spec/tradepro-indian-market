@@ -36,6 +36,7 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/auth-store'
 import { useAppStore } from '@/lib/store'
+import { IndexDetailDrawer } from '@/components/tradepro/index-detail-drawer'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -201,6 +202,15 @@ export function DashboardPage() {
   const { token, user } = useAuthStore()
   const { setCurrentPage } = useAppStore()
 
+  // Index detail drawer state
+  const [selectedIndexSymbol, setSelectedIndexSymbol] = useState<string | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
+  const handleIndexClick = (symbol: string) => {
+    setSelectedIndexSymbol(symbol)
+    setDrawerOpen(true)
+  }
+
   // Data states
   const [portfolio, setPortfolio] = useState<PortfolioData | null>(null)
   const [positions, setPositions] = useState<PositionData[]>([])
@@ -302,6 +312,18 @@ export function DashboardPage() {
     fetchMarketIndices()
   }, [fetchPortfolio, fetchPositions, fetchTrades, fetchMarketIndices])
 
+  // ─── Listen for index detail events from ticker ────────────────
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (detail?.symbol) {
+        handleIndexClick(detail.symbol)
+      }
+    }
+    window.addEventListener('openIndexDetail', handler)
+    return () => window.removeEventListener('openIndexDetail', handler)
+  }, [])
+
   // ─── Derived values ──────────────────────────────────────────────
   const portfolioData = portfolio ?? fallbackPortfolio
   const totalBalance = portfolioData.totalPortfolioValue
@@ -376,12 +398,20 @@ export function DashboardPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 + i * 0.1, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
                 >
-                  <Card className="bg-tp-surface-container-lowest shadow-md rounded-xl border border-tp-outline-variant/10 hover:shadow-lg transition-shadow cursor-pointer group">
+                  <Card
+                    onClick={() => handleIndexClick(index.symbol)}
+                    className="bg-tp-surface-container-lowest shadow-md rounded-xl border border-tp-outline-variant/10 hover:shadow-lg hover:border-tp-primary/30 transition-all cursor-pointer group"
+                  >
                     <CardContent className="p-5">
                       <div className="flex justify-between items-start mb-3">
-                        <span className="text-xs font-semibold text-tp-on-surface-variant tracking-wider uppercase">
-                          {index.name || index.symbol}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-tp-on-surface-variant tracking-wider uppercase">
+                            {index.name || index.symbol}
+                          </span>
+                          <span className="text-[9px] font-bold text-tp-primary opacity-0 group-hover:opacity-100 transition-opacity bg-tp-primary/10 px-1.5 py-0.5 rounded">
+                            VIEW DETAILS →
+                          </span>
+                        </div>
                         {isPositive ? (
                           <TrendingUp className="size-5 text-tp-secondary group-hover:scale-110 transition-transform" />
                         ) : (
@@ -861,6 +891,13 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* ═══ Index Detail Drawer ════════════════════════════════════════════════ */}
+      <IndexDetailDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        symbol={selectedIndexSymbol}
+      />
 
       {/* ═══ Floating Action Button - New Trade ════════════════════════════════ */}
       <div className="fixed bottom-6 right-6 z-50 md:right-[calc(280px+24px)]">
