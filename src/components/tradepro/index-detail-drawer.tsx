@@ -1,15 +1,24 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useAuthStore } from '@/lib/auth-store'
+import { toast } from 'sonner'
 import {
   Sheet,
   SheetContent,
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   TrendingUp,
@@ -28,6 +37,8 @@ import {
   ChevronRight,
   Minus,
   Plus,
+  Loader2,
+  Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -215,6 +226,8 @@ interface IndexDetailDrawerProps {
 }
 
 export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDrawerProps) {
+  const { token } = useAuthStore()
+
   // State
   const [detail, setDetail] = useState<IndexDetail | null>(null)
   const [chartData, setChartData] = useState<CandleData[]>([])
@@ -223,6 +236,17 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
   const [chartLoading, setChartLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('chart')
   const [chartType, setChartType] = useState<'area' | 'candle'>('area')
+
+  // Trade modal state
+  const [tradeModalOpen, setTradeModalOpen] = useState(false)
+  const [tradeRow, setTradeRow] = useState<OptionRow | null>(null)
+  const [tradeSide, setTradeSide] = useState<'CE' | 'PE'>('CE')
+
+  const handleOptionClick = (row: OptionRow, side: 'CE' | 'PE') => {
+    setTradeRow(row)
+    setTradeSide(side)
+    setTradeModalOpen(true)
+  }
 
   // Fetch index detail
   const fetchDetail = useCallback(async () => {
@@ -755,27 +779,27 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
                               isATM && 'bg-yellow-100/60 dark:bg-yellow-900/30'
                             )}
                           >
-                            {/* CE Side */}
-                            <td className={cn('px-1.5 py-1 text-right font-mono', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')}>
+                            {/* CE Side — Clickable to Trade */}
+                            <td className={cn('px-1.5 py-1 text-right font-mono cursor-pointer hover:text-tp-primary', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'CE')}>
                               {row.ceOI.toFixed(1)}
                             </td>
-                            <td className={cn('px-1.5 py-1 text-right font-mono text-[10px]', getOIColorClass(row.ceOIChngPct), ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')}>
+                            <td className={cn('px-1.5 py-1 text-right font-mono text-[10px] cursor-pointer hover:text-tp-primary', getOIColorClass(row.ceOIChngPct), ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'CE')}>
                               {row.ceOIChngPct > 0 ? '+' : ''}{row.ceOIChngPct.toFixed(1)}%
                             </td>
-                            <td className={cn('px-1.5 py-1 text-right font-mono font-semibold', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')}>
+                            <td className={cn('px-1.5 py-1 text-right font-mono font-semibold cursor-pointer hover:text-tp-primary hover:underline', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'CE')}>
                               {row.ceLTP.toFixed(2)}
                             </td>
                             <td className={cn(
-                              'px-1.5 py-1 text-right font-mono text-[10px]',
+                              'px-1.5 py-1 text-right font-mono text-[10px] cursor-pointer hover:text-tp-primary',
                               row.ceChngPct > 0 ? 'text-emerald-600' : row.ceChngPct < 0 ? 'text-red-500' : 'text-tp-on-surface-variant',
                               ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10'
-                            )}>
+                            )} onClick={() => handleOptionClick(row, 'CE')}>
                               {row.ceChngPct > 0 ? '+' : ''}{row.ceChngPct.toFixed(1)}%
                             </td>
-                            <td className={cn('px-1.5 py-1 text-right font-mono', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')}>
+                            <td className={cn('px-1.5 py-1 text-right font-mono cursor-pointer hover:text-tp-primary', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'CE')}>
                               {row.ceIV.toFixed(1)}
                             </td>
-                            <td className={cn('px-1.5 py-1 text-right font-mono text-tp-on-surface-variant text-[10px]', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')}>
+                            <td className={cn('px-1.5 py-1 text-right font-mono text-tp-on-surface-variant text-[10px] cursor-pointer hover:text-tp-primary', ceITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'CE')}>
                               {(row.ceVolume / 1000).toFixed(0)}K
                             </td>
 
@@ -789,27 +813,27 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
                               {isATM && <span className="ml-0.5 text-[8px] font-bold text-yellow-700 dark:text-yellow-300">ATM</span>}
                             </td>
 
-                            {/* PE Side */}
-                            <td className={cn('px-1.5 py-1 text-left font-mono text-tp-on-surface-variant text-[10px]', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')}>
+                            {/* PE Side — Clickable to Trade */}
+                            <td className={cn('px-1.5 py-1 text-left font-mono text-tp-on-surface-variant text-[10px] cursor-pointer hover:text-tp-primary', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'PE')}>
                               {(row.peVolume / 1000).toFixed(0)}K
                             </td>
-                            <td className={cn('px-1.5 py-1 text-left font-mono', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')}>
+                            <td className={cn('px-1.5 py-1 text-left font-mono cursor-pointer hover:text-tp-primary', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'PE')}>
                               {row.peIV.toFixed(1)}
                             </td>
                             <td className={cn(
-                              'px-1.5 py-1 text-left font-mono text-[10px]',
+                              'px-1.5 py-1 text-left font-mono text-[10px] cursor-pointer hover:text-tp-primary',
                               row.peChngPct > 0 ? 'text-emerald-600' : row.peChngPct < 0 ? 'text-red-500' : 'text-tp-on-surface-variant',
                               peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10'
-                            )}>
+                            )} onClick={() => handleOptionClick(row, 'PE')}>
                               {row.peChngPct > 0 ? '+' : ''}{row.peChngPct.toFixed(1)}%
                             </td>
-                            <td className={cn('px-1.5 py-1 text-left font-mono font-semibold', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')}>
+                            <td className={cn('px-1.5 py-1 text-left font-mono font-semibold cursor-pointer hover:text-tp-primary hover:underline', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'PE')}>
                               {row.peLTP.toFixed(2)}
                             </td>
-                            <td className={cn('px-1.5 py-1 text-left font-mono text-[10px]', getOIColorClass(row.peOIChngPct), peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')}>
+                            <td className={cn('px-1.5 py-1 text-left font-mono text-[10px] cursor-pointer hover:text-tp-primary', getOIColorClass(row.peOIChngPct), peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'PE')}>
                               {row.peOIChngPct > 0 ? '+' : ''}{row.peOIChngPct.toFixed(1)}%
                             </td>
-                            <td className={cn('px-1.5 py-1 text-left font-mono', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')}>
+                            <td className={cn('px-1.5 py-1 text-left font-mono cursor-pointer hover:text-tp-primary', peITM && 'bg-emerald-50/50 dark:bg-emerald-900/10')} onClick={() => handleOptionClick(row, 'PE')}>
                               {row.peOI.toFixed(1)}
                             </td>
                           </tr>
@@ -976,10 +1000,217 @@ export function IndexDetailDrawer({ open, onOpenChange, symbol }: IndexDetailDra
           </Tabs>
         </div>
 
+        {/* Trade Modal for Option Chain */}
+        <OptionTradeModal
+          open={tradeModalOpen}
+          onOpenChange={setTradeModalOpen}
+          row={tradeRow}
+          side={tradeSide}
+          spotPrice={detail?.currentPrice ?? 0}
+          instrument={(symbol as 'NIFTY' | 'BANKNIFTY' | 'FINNIFTY' | 'SENSEX' | 'MIDCPNIFTY') ?? 'NIFTY'}
+          lotSize={detail?.lotSize ?? 50}
+        />
+
         {/* Bottom Spacing */}
         <div className="h-20" />
       </SheetContent>
     </Sheet>
+  )
+}
+
+// ─── Option Trade Modal ──────────────────────────────────────────────────
+
+function OptionTradeModal({
+  open,
+  onOpenChange,
+  row,
+  side,
+  spotPrice,
+  instrument,
+  lotSize,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  row: OptionRow | null
+  side: 'CE' | 'PE'
+  spotPrice: number
+  instrument: string
+  lotSize: number
+}) {
+  const { token } = useAuthStore()
+  const [lots, setLots] = useState(1)
+  const [direction, setDirection] = useState<'BUY' | 'SELL'>('BUY')
+  const [placing, setPlacing] = useState(false)
+
+  if (!row) return null
+
+  const ltp = side === 'CE' ? row.ceLTP : row.peLTP
+  const totalQty = lots * lotSize
+  const totalPremium = Math.round(ltp * totalQty * 100) / 100
+  const brokerage = Math.max(20, Math.min(500, Math.round(totalPremium * 0.0005 * 100) / 100))
+  const marginRequired = direction === 'BUY'
+    ? totalPremium + brokerage
+    : Math.round(totalPremium * 1.5 * 100) / 100
+
+  const handlePlaceOrder = async () => {
+    if (!token) {
+      toast.error('Please login to trade')
+      return
+    }
+    setPlacing(true)
+    try {
+      const res = await fetch('/api/trade/place', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          symbol: instrument,
+          direction,
+          orderType: 'MARKET',
+          segment: 'OPTIONS',
+          productType: 'INTRADAY',
+          quantity: totalQty,
+          lots,
+          optionType: side,
+          strikePrice: row.strike,
+          price: ltp,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        toast.success(data.message)
+        onOpenChange(false)
+      } else {
+        toast.error(data.error || 'Failed to place order')
+      }
+    } catch {
+      toast.error('Network error')
+    } finally {
+      setPlacing(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <span className="text-tp-primary font-bold">
+              {side === 'CE' ? 'CALL' : 'PUT'} Option
+            </span>
+            <Badge variant="outline" className="font-mono">
+              Strike ₹{row.strike.toLocaleString()}
+            </Badge>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 pt-2">
+          {/* Option Info */}
+          <div className="glass-card p-4 rounded-xl space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-tp-on-surface-variant">Spot Price</span>
+              <span className="font-mono font-semibold">₹{spotPrice.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-tp-on-surface-variant">LTP</span>
+              <span className="font-mono font-semibold">₹{ltp.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-tp-on-surface-variant">IV</span>
+              <span className="font-mono">{side === 'CE' ? row.ceIV : row.peIV}%</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-tp-on-surface-variant">OI</span>
+              <span className="font-mono">{(side === 'CE' ? row.ceOI : row.peOI).toFixed(1)} L</span>
+            </div>
+          </div>
+
+          {/* Buy/Sell Toggle */}
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setDirection('BUY')}
+              className={cn(
+                'flex-1 font-bold',
+                direction === 'BUY' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-muted text-muted-foreground'
+              )}
+            >
+              BUY
+            </Button>
+            <Button
+              onClick={() => setDirection('SELL')}
+              className={cn(
+                'flex-1 font-bold',
+                direction === 'SELL' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-muted text-muted-foreground'
+              )}
+            >
+              SELL
+            </Button>
+          </div>
+
+          {/* Lots Input */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-tp-on-surface-variant">Lots</label>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" className="size-9" onClick={() => setLots(Math.max(1, lots - 1))}>
+                <Minus className="size-3" />
+              </Button>
+              <Input type="number" value={lots} onChange={(e) => setLots(Math.max(1, parseInt(e.target.value) || 1))} className="text-center font-mono" />
+              <Button variant="outline" size="icon" className="size-9" onClick={() => setLots(lots + 1)}>
+                <Plus className="size-3" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Calculated Fields */}
+          <div className="glass-card p-4 rounded-xl space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-tp-on-surface-variant">Lot Size</span>
+              <span className="font-mono font-medium">{lotSize}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-tp-on-surface-variant">Total Qty</span>
+              <span className="font-mono font-medium">{totalQty}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-tp-on-surface-variant">Premium</span>
+              <span className="font-mono font-medium">₹{totalPremium.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-tp-on-surface-variant">Brokerage</span>
+              <span className="font-mono font-medium">₹{brokerage.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between border-t border-tp-outline-variant/20 pt-2">
+              <span className="text-tp-on-surface-variant font-semibold">{direction === 'BUY' ? 'Total Cost' : 'Margin Required'}</span>
+              <span className="font-mono font-bold text-tp-primary text-base">₹{marginRequired.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <Button
+            onClick={handlePlaceOrder}
+            disabled={placing || ltp <= 0}
+            className={cn(
+              'w-full font-bold py-3',
+              direction === 'BUY'
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                : 'bg-red-600 hover:bg-red-700 text-white'
+            )}
+          >
+            {placing ? (
+              <><Loader2 className="size-4 mr-2 animate-spin" />Placing Order...</>
+            ) : (
+              `Place ${direction} Order`
+            )}
+          </Button>
+
+          <p className="text-[10px] text-center text-tp-on-surface-variant flex items-center justify-center gap-1">
+            <Info className="size-3" />
+            Paper trading — No real money involved
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

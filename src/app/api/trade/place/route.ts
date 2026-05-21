@@ -531,6 +531,424 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid direction' }, { status: 400 })
     } // end FUTURES
 
+    // ─── OPTIONS Segment ──────────────────────────────────────────
+    if (segment === 'OPTIONS') {
+      const lots = body.lots || 1
+      const optionType = body.optionType // CE or PE
+      const strikePrice = body.strikePrice
+
+      if (!optionType || !['CE', 'PE'].includes(optionType)) {
+        return NextResponse.json({ error: 'optionType is required and must be CE or PE' }, { status: 400 })
+      }
+      if (!strikePrice || strikePrice <= 0) {
+        return NextResponse.json({ error: 'strikePrice is required and must be positive' }, { status: 400 })
+      }
+
+      // Find the option in DB
+      const option = await db.option.findFirst({
+        where: {
+          underlying: { equals: symbol, mode: 'insensitive' },
+          optionType: optionType as 'CE' | 'PE',
+          strikePrice,
+          isActive: true,
+        },
+        orderBy: { expiryDate: 'asc' },
+      })
+
+      if (!option) {
+        return NextResponse.json({
+          error: `Option not found: ${symbol} ${strikePrice} ${optionType}`
+        }, { status: 404 })
+      }
+
+      // Get the index for lot size
+      const indexData = await db.index.findFirst({
+        where: { symbol: { equals: symbol, mode: 'insensitive' } },
+      })
+      const lotSize = indexData?.lotSize || 50
+
+      const fillPrice = orderType === 'MARKET' ? option.ltp : (price || option.ltp)
+      const totalQty = lots * lotSize
+      const totalValue = Math.round(totalQty * fillPrice * 100) / 100
+      const brokerage = calculateBrokerage(totalValue)
+
+      // ─── BUY OPTIONS ──────────────────────────────────────
+      if (direction === 'BUY') {
+        // For options BUY: premium is paid upfront (like equity BUY)
+        const requiredAmount = totalValue + brokerage
+        if (user.virtualBalance < requiredAmount) {
+          return NextResponse.json({
+            error: `Insufficient balance. Required premium: ₹${requiredAmount.toLocaleString('en-IN')}, Available: ₹${user.virtualBalance.toLocaleString('en-IN')}`
+          }, { status: 400 })
+        }
+
+        const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
+          const updatedUser = await tx.user.update({
+            where: { id: user.id },
+            data: {
+              virtualBalance: { decrement: requiredAmount },
+              totalTrades: { increment: 1 },
+              totalPnl: { decrement: brokerage },
+            }
+          })
+
+          const order = await tx.order.create({
+            data: {
+              userId: user.id,
+              orderType: orderType as 'MARKET' | 'LIMIT' | 'SL' | 'SL_M',
+              tradeDirection: 'BUY',
+              segment: 'OPTIONS',
+              productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
+              symbol,
+              instrumentId: option.id,
+              optionType: optionType as 'CE' | 'PE',
+              strikePrice,
+              expiryDate: option.expiryDate,
+              quantity: totalQty,
+              lotSize,
+              lots,
+              price: price || fillPrice,
+              fillPrice,
+              totalValue,
+              brokerage,
+              status: 'FILLED',
+              filledAt: new Date(),
+            }
+          })
+
+          const trade = await tx.trade.create({
+            data: {
+              userId: user.id,
+              orderId: order.id,
+              segment: 'OPTIONS',
+              productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
+              tradeDirection: 'BUY',
+              symbol,
+              instrumentId: option.id,
+              optionType: optionType as 'CE' | 'PE',
+              strikePrice,
+              expiryDate: option.expiryDate,
+              quantity: totalQty,
+              fillPrice,
+              totalValue,
+              brokerage,
+            }
+          })
+
+          // Create or update position
+          const existingPosition = await tx.position.findFirst({
+            where: {
+              userId: user.id, symbol, segment: 'OPTIONS',
+              optionType: optionType as 'CE' | 'PE',
+              strikePrice,
+              productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
+              tradeDirection: 'BUY', isOpen: true,
+              expiryDate: option.expiryDate,
+            }
+          })
+
+          if (existingPosition) {
+            const newQty = existingPosition.quantity + totalQty
+            const newInvested = existingPosition.totalInvested + totalValue
+            const newEntry = newInvested / newQty
+            const newCurrent = newQty * fillPrice
+            await tx.position.update({
+              where: { id: existingPosition.id },
+              data: {
+                quantity: newQty,
+                lots: existingPosition.lots + lots,
+                entryPrice: Math.round(newEntry * 100) / 100,
+                totalInvested: newInvested,
+                currentValue: newCurrent,
+                currentPrice: fillPrice,
+                unrealizedPnl: Math.round((newCurrent - newInvested) * 100) / 100,
+              }
+            })
+          } else {
+            const currentValue = totalQty * fillPrice
+            await tx.position.create({
+              data: {
+                userId: user.id, segment: 'OPTIONS',
+                productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
+                tradeDirection: 'BUY', symbol, quantity: totalQty,
+                optionType: optionType as 'CE' | 'PE',
+                strikePrice,
+                lotSize, lots,
+                entryPrice: fillPrice, currentPrice: fillPrice,
+                totalInvested: totalValue, currentValue,
+                unrealizedPnl: Math.round((currentValue - totalValue) * 100) / 100,
+                instrumentId: option.id,
+                expiryDate: option.expiryDate,
+                isOpen: true,
+              }
+            })
+          }
+
+          return { order, trade, updatedUser }
+        })
+
+        return NextResponse.json({
+          success: true,
+          message: `BUY ${lots} lots (${totalQty} qty) ${symbol} ${strikePrice} ${optionType} @ ₹${fillPrice}`,
+          order: result.order,
+          trade: result.trade,
+          balance: result.updatedUser.virtualBalance,
+          totalPnl: result.updatedUser.totalPnl,
+        }, { status: 201 })
+      }
+
+      // ─── SELL OPTIONS ─────────────────────────────────────
+      if (direction === 'SELL') {
+        // Check if user has an existing BUY position for this option
+        const existingBuyPosition = await db.position.findFirst({
+          where: {
+            userId: user.id, symbol, segment: 'OPTIONS',
+            optionType: optionType as 'CE' | 'PE',
+            strikePrice,
+            tradeDirection: 'BUY', isOpen: true,
+            expiryDate: option.expiryDate,
+          }
+        })
+
+        // ─── SELL to close existing BUY position ───────────
+        if (existingBuyPosition) {
+          if (existingBuyPosition.quantity < totalQty) {
+            return NextResponse.json({
+              error: `Insufficient quantity. You hold ${existingBuyPosition.quantity} qty, trying to sell ${totalQty} qty.`
+            }, { status: 400 })
+          }
+
+          const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
+            const proceeds = totalValue - brokerage
+            const realizedPnl = Math.round(((fillPrice - existingBuyPosition.entryPrice) * totalQty - brokerage) * 100) / 100
+
+            const updatedUser = await tx.user.update({
+              where: { id: user.id },
+              data: {
+                virtualBalance: { increment: proceeds },
+                totalTrades: { increment: 1 },
+                totalPnl: { increment: realizedPnl },
+              }
+            })
+
+            const order = await tx.order.create({
+              data: {
+                userId: user.id,
+                orderType: orderType as 'MARKET' | 'LIMIT' | 'SL' | 'SL_M',
+                tradeDirection: 'SELL',
+                segment: 'OPTIONS',
+                productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
+                symbol,
+                instrumentId: option.id,
+                optionType: optionType as 'CE' | 'PE',
+                strikePrice,
+                expiryDate: option.expiryDate,
+                quantity: totalQty,
+                lotSize,
+                lots,
+                price: price || fillPrice,
+                fillPrice,
+                totalValue,
+                brokerage,
+                status: 'FILLED',
+                filledAt: new Date(),
+              }
+            })
+
+            const trade = await tx.trade.create({
+              data: {
+                userId: user.id, orderId: order.id, segment: 'OPTIONS',
+                productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
+                tradeDirection: 'SELL', symbol,
+                instrumentId: option.id,
+                optionType: optionType as 'CE' | 'PE',
+                strikePrice,
+                expiryDate: option.expiryDate,
+                quantity: totalQty,
+                fillPrice, totalValue, brokerage, pnl: realizedPnl,
+                pnlPercent: existingBuyPosition.entryPrice > 0
+                  ? Math.round((realizedPnl / (existingBuyPosition.entryPrice * totalQty)) * 10000) / 100
+                  : 0,
+              }
+            })
+
+            const remainingQty = existingBuyPosition.quantity - totalQty
+            if (remainingQty === 0) {
+              await tx.position.update({
+                where: { id: existingBuyPosition.id },
+                data: {
+                  isOpen: false, realizedPnl: { increment: realizedPnl },
+                  squaredOffAt: new Date(), currentValue: 0, unrealizedPnl: 0,
+                }
+              })
+            } else {
+              const newInvested = existingBuyPosition.totalInvested - (existingBuyPosition.entryPrice * totalQty)
+              const newCurrent = remainingQty * fillPrice
+              await tx.position.update({
+                where: { id: existingBuyPosition.id },
+                data: {
+                  quantity: remainingQty,
+                  lots: existingBuyPosition.lots - lots,
+                  totalInvested: newInvested,
+                  currentValue: newCurrent,
+                  currentPrice: fillPrice,
+                  unrealizedPnl: Math.round((newCurrent - newInvested) * 100) / 100,
+                  realizedPnl: { increment: realizedPnl },
+                }
+              })
+            }
+
+            return { order, trade, realizedPnl, updatedUser }
+          })
+
+          return NextResponse.json({
+            success: true,
+            message: `SELL ${lots} lots (${totalQty} qty) ${symbol} ${strikePrice} ${optionType} @ ₹${fillPrice}`,
+            order: result.order,
+            trade: result.trade,
+            realizedPnl: result.realizedPnl,
+            balance: result.updatedUser.virtualBalance,
+            totalPnl: result.updatedUser.totalPnl,
+          }, { status: 201 })
+        }
+
+        // ─── SELL to open short position (no existing BUY) ──
+        // Short options require margin (like futures)
+        const marginPercent = 150 // 1.5x premium value for short options margin
+        const marginRequired = Math.round(totalValue * marginPercent / 100 * 100) / 100
+
+        if (user.virtualBalance < marginRequired) {
+          return NextResponse.json({
+            error: `Insufficient margin for short option. Required: ₹${marginRequired.toLocaleString('en-IN')}, Available: ₹${user.virtualBalance.toLocaleString('en-IN')}`
+          }, { status: 400 })
+        }
+
+        const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
+          // Block margin from balance and credit premium received
+          const netDebit = marginRequired - totalValue + brokerage
+          const updatedUser = await tx.user.update({
+            where: { id: user.id },
+            data: {
+              virtualBalance: { decrement: netDebit },
+              marginUsed: { increment: marginRequired },
+              totalTrades: { increment: 1 },
+              totalPnl: { decrement: brokerage },
+            }
+          })
+
+          const order = await tx.order.create({
+            data: {
+              userId: user.id,
+              orderType: orderType as 'MARKET' | 'LIMIT' | 'SL' | 'SL_M',
+              tradeDirection: 'SELL',
+              segment: 'OPTIONS',
+              productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
+              symbol,
+              instrumentId: option.id,
+              optionType: optionType as 'CE' | 'PE',
+              strikePrice,
+              expiryDate: option.expiryDate,
+              quantity: totalQty,
+              lotSize,
+              lots,
+              price: price || fillPrice,
+              fillPrice,
+              totalValue,
+              brokerage,
+              marginRequired,
+              status: 'FILLED',
+              filledAt: new Date(),
+            }
+          })
+
+          const trade = await tx.trade.create({
+            data: {
+              userId: user.id,
+              orderId: order.id,
+              segment: 'OPTIONS',
+              productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
+              tradeDirection: 'SELL',
+              symbol,
+              instrumentId: option.id,
+              optionType: optionType as 'CE' | 'PE',
+              strikePrice,
+              expiryDate: option.expiryDate,
+              quantity: totalQty,
+              fillPrice,
+              totalValue,
+              brokerage,
+            }
+          })
+
+          // Check if there's an existing SELL position to add to
+          const existingSellPosition = await tx.position.findFirst({
+            where: {
+              userId: user.id, symbol, segment: 'OPTIONS',
+              optionType: optionType as 'CE' | 'PE',
+              strikePrice,
+              productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
+              tradeDirection: 'SELL', isOpen: true,
+              expiryDate: option.expiryDate,
+            }
+          })
+
+          if (existingSellPosition) {
+            const newQty = existingSellPosition.quantity + totalQty
+            const newInvested = existingSellPosition.totalInvested + totalValue
+            const newEntry = newInvested / newQty
+            const newCurrent = newQty * fillPrice
+            const newMargin = existingSellPosition.marginUsed + marginRequired
+            await tx.position.update({
+              where: { id: existingSellPosition.id },
+              data: {
+                quantity: newQty,
+                lots: existingSellPosition.lots + lots,
+                entryPrice: Math.round(newEntry * 100) / 100,
+                totalInvested: newInvested,
+                currentValue: newCurrent,
+                currentPrice: fillPrice,
+                unrealizedPnl: Math.round((newCurrent - newInvested) * 100) / 100,
+                marginUsed: newMargin,
+              }
+            })
+          } else {
+            const currentValue = totalQty * fillPrice
+            await tx.position.create({
+              data: {
+                userId: user.id, segment: 'OPTIONS',
+                productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
+                tradeDirection: 'SELL', symbol, quantity: totalQty,
+                optionType: optionType as 'CE' | 'PE',
+                strikePrice,
+                lotSize, lots,
+                entryPrice: fillPrice, currentPrice: fillPrice,
+                totalInvested: totalValue, currentValue,
+                unrealizedPnl: Math.round((currentValue - totalValue) * 100) / 100,
+                marginUsed: marginRequired,
+                instrumentId: option.id,
+                expiryDate: option.expiryDate,
+                isOpen: true,
+              }
+            })
+          }
+
+          return { order, trade, updatedUser }
+        })
+
+        return NextResponse.json({
+          success: true,
+          message: `SELL (SHORT) ${lots} lots (${totalQty} qty) ${symbol} ${strikePrice} ${optionType} @ ₹${fillPrice}`,
+          order: result.order,
+          trade: result.trade,
+          balance: result.updatedUser.virtualBalance,
+          totalPnl: result.updatedUser.totalPnl,
+          marginRequired,
+        }, { status: 201 })
+      }
+
+      return NextResponse.json({ error: 'Invalid direction' }, { status: 400 })
+    } // end OPTIONS
+
     return NextResponse.json({ error: `Unsupported segment: ${segment}` }, { status: 400 })
   } catch (error) {
     console.error('[POST /api/trade/place] Error:', error)
