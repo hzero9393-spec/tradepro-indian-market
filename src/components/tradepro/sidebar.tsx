@@ -6,10 +6,13 @@ import {
   Wallet,
   FileText,
   BarChart3,
+  GitBranch,
+  TrendingUp as TrendingUpIcon,
   Trophy,
   Medal,
   GraduationCap,
   HelpCircle,
+  ShieldCheck,
   LogOut,
   TrendingUp,
 } from 'lucide-react'
@@ -30,6 +33,8 @@ const mainNavItems: NavItem[] = [
   { id: 'portfolio', label: 'Portfolio', icon: Wallet },
   { id: 'orders', label: 'Orders', icon: FileText },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'optionChain', label: 'Option Chain', icon: GitBranch },
+  { id: 'futures', label: 'Futures', icon: TrendingUpIcon },
   { id: 'challenges', label: 'Challenges', icon: Trophy },
   { id: 'leaderboard', label: 'Leaderboard', icon: Medal },
   { id: 'learning', label: 'Learning', icon: GraduationCap },
@@ -37,6 +42,7 @@ const mainNavItems: NavItem[] = [
 
 const bottomNavItems: NavItem[] = [
   { id: 'settings', label: 'Support', icon: HelpCircle },
+  { id: 'admin', label: 'Admin', icon: ShieldCheck },
 ]
 
 export function Sidebar() {

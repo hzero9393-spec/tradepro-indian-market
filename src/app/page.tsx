@@ -13,6 +13,10 @@ import { SettingsPage } from '@/components/tradepro/pages/settings-page'
 import { ChallengesPage } from '@/components/tradepro/pages/challenges-page'
 import { LeaderboardPage } from '@/components/tradepro/pages/leaderboard-page'
 import { LearningPage } from '@/components/tradepro/pages/learning-page'
+import { AdminPage } from '@/components/tradepro/pages/admin-page'
+import { OptionChainPage } from '@/components/tradepro/pages/option-chain-page'
+import { FuturesPage } from '@/components/tradepro/pages/futures-page'
+import { IndexTicker } from '@/components/tradepro/index-ticker'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { TrendingUp } from 'lucide-react'
 
@@ -28,6 +32,10 @@ function PageContent({ page }: { page: string }) {
       return <OrdersPage />
     case 'analytics':
       return <AnalyticsPage />
+    case 'optionChain':
+      return <OptionChainPage />
+    case 'futures':
+      return <FuturesPage />
     case 'challenges':
       return <ChallengesPage />
     case 'leaderboard':
@@ -36,6 +44,8 @@ function PageContent({ page }: { page: string }) {
       return <LearningPage />
     case 'settings':
       return <SettingsPage />
+    case 'admin':
+      return <AdminPage />
     default:
       return <DashboardPage />
   }
@@ -59,8 +69,11 @@ export default function Home() {
       {/* Top Bar */}
       <TopBar />
 
+      {/* Indian Market Index Ticker */}
+      <IndexTicker />
+
       {/* Main Content */}
-      <main className="flex-1 md:ml-[280px] pt-16 pb-20 md:pb-0">
+      <main className="flex-1 md:ml-[280px] pt-24 pb-20 md:pb-0">
         <PageContent page={currentPage} />
 
         {/* Sticky Footer */}

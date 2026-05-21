@@ -6,10 +6,13 @@ export type PageId =
   | 'portfolio'
   | 'orders'
   | 'analytics'
+  | 'optionChain'
+  | 'futures'
   | 'challenges'
   | 'leaderboard'
   | 'learning'
   | 'settings'
+  | 'admin'
 
 interface AppState {
   currentPage: PageId
