@@ -15,10 +15,12 @@ import {
   ArrowDownRight,
   Activity,
   Flame,
-  Zap,
   Search,
   BarChart3,
   ChevronRight,
+  CandlestickChart,
+  GraduationCap,
+  Briefcase,
 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { IndexDetailDrawer } from '@/components/tradepro/index-detail-drawer'
@@ -100,13 +102,6 @@ function formatPrice(value: number): string {
   return value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-// ─── Animation ──────────────────────────────────────────────────────────────
-
-const fadeIn = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] } },
-}
-
 // ─── Stock Row Component ────────────────────────────────────────────────────
 
 function StockRow({ stock, onClick }: { stock: StockData; onClick: () => void }) {
@@ -159,73 +154,13 @@ function StockRow({ stock, onClick }: { stock: StockData; onClick: () => void })
   )
 }
 
-// ─── Section Component ──────────────────────────────────────────────────────
-
-function StockSection({ title, icon, iconBg, iconColor, stocks, loading, navigateToStock, emptyText }: {
-  title: string
-  icon: React.ReactNode
-  iconBg: string
-  iconColor: string
-  stocks: StockData[]
-  loading: boolean
-  navigateToStock: (symbol: string) => void
-  emptyText: string
-}) {
-  return (
-    <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
-      <CardContent className="p-0">
-        <div className="flex items-center justify-between px-5 pt-5 pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className={`size-8 rounded-lg ${iconBg} flex items-center justify-center`}>
-              {icon}
-            </div>
-            <h3 className="text-base font-semibold text-[#1a1a1a]">{title}</h3>
-          </div>
-          <span className="text-xs text-[#6b7280] font-medium">{stocks.length} stocks</span>
-        </div>
-
-        {loading ? (
-          <div className="px-5 pb-5 space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-3">
-                  <Skeleton className="size-9 rounded-lg bg-[#f5f5f5]" />
-                  <div>
-                    <Skeleton className="h-4 w-16 bg-[#f5f5f5] mb-1" />
-                    <Skeleton className="h-3 w-24 bg-[#f5f5f5]" />
-                  </div>
-                </div>
-                <div className="text-right">
-                  <Skeleton className="h-4 w-16 bg-[#f5f5f5] mb-1 ml-auto" />
-                  <Skeleton className="h-3 w-20 bg-[#f5f5f5] ml-auto" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : stocks.length === 0 ? (
-          <div className="px-5 pb-5 text-center py-8">
-            <p className="text-sm text-[#6b7280]">{emptyText}</p>
-          </div>
-        ) : (
-          <div className="px-2 pb-2 divide-y divide-[#f0f0f0]">
-            {stocks.map((stock) => (
-              <StockRow
-                key={stock.id}
-                stock={stock}
-                onClick={() => navigateToStock(stock.symbol)}
-              />
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export function DashboardPage() {
-  const { navigateToStock } = useAppStore()
+  const { navigateToStock, setCurrentPage } = useAppStore()
+
+  // Active tab
+  const [activeTab, setActiveTab] = useState<'stocks' | 'options' | 'portfolio' | 'learn'>('stocks')
 
   // Index detail drawer
   const [selectedIndexSymbol, setSelectedIndexSymbol] = useState<string | null>(null)
@@ -248,7 +183,7 @@ export function DashboardPage() {
   const [gainersLoading, setGainersLoading] = useState(true)
   const [losersLoading, setLosersLoading] = useState(true)
 
-  // Search for other stocks
+  // Search
   const [searchQuery, setSearchQuery] = useState('')
 
   // ─── Fetch Indices ───────────────────────────────────────────
@@ -260,7 +195,7 @@ export function DashboardPage() {
         const json = await res.json()
         if (json.data?.length > 0) setApiIndices(json.data)
       }
-    } catch { /* use fallback */ }
+    } catch { /* fallback */ }
     finally { setIndicesLoading(false) }
   }, [])
 
@@ -273,7 +208,7 @@ export function DashboardPage() {
         const json = await res.json()
         if (json.data?.length > 0) setApiStocks(json.data)
       }
-    } catch { /* use fallback */ }
+    } catch { /* fallback */ }
     finally { setStocksLoading(false) }
   }, [])
 
@@ -286,7 +221,7 @@ export function DashboardPage() {
         const json = await res.json()
         if (json.data?.length > 0) setApiGainers(json.data)
       }
-    } catch { /* use fallback */ }
+    } catch { /* fallback */ }
     finally { setGainersLoading(false) }
   }, [])
 
@@ -299,7 +234,7 @@ export function DashboardPage() {
         const json = await res.json()
         if (json.data?.length > 0) setApiLosers(json.data)
       }
-    } catch { /* use fallback */ }
+    } catch { /* fallback */ }
     finally { setLosersLoading(false) }
   }, [])
 
@@ -321,24 +256,21 @@ export function DashboardPage() {
     return () => window.removeEventListener('openIndexDetail', handler)
   }, [])
 
-  // ─── Display data: use API data if available, else fallback ──
+  // ─── Display data ────────────────────────────────────────────
   const displayIndices = apiIndices.length > 0 ? apiIndices : fallbackIndices
 
-  // Gainers: API data or fallback
   const displayGainers = apiGainers.length > 0
     ? apiGainers
     : apiStocks.length > 0
       ? [...apiStocks].filter(s => s.changePercent > 0).sort((a, b) => b.changePercent - a.changePercent).slice(0, 8)
       : fallbackGainers
 
-  // Losers: API data or fallback
   const displayLosers = apiLosers.length > 0
     ? apiLosers
     : apiStocks.length > 0
       ? [...apiStocks].filter(s => s.changePercent < 0).sort((a, b) => a.changePercent - b.changePercent).slice(0, 8)
       : fallbackLosers
 
-  // Other stocks: everything not in gainers/losers, or fallback
   const getOtherStocks = () => {
     const allStocks = apiStocks.length > 0 ? apiStocks : fallbackOtherStocks
     const gainersSet = new Set(displayGainers.map(s => s.symbol))
@@ -352,192 +284,214 @@ export function DashboardPage() {
     return others.slice(0, 10)
   }
 
-  // Market status
-  const isMarketOpen = () => {
-    const now = new Date()
-    const day = now.getDay()
-    const hours = now.getHours()
-    const minutes = now.getMinutes()
-    const time = hours * 60 + minutes
-    return day >= 1 && day <= 5 && time >= 555 && time <= 930
+  // Tab config
+  const tabs = [
+    { key: 'stocks' as const, label: 'Stocks', icon: BarChart3 },
+    { key: 'options' as const, label: 'Options', icon: CandlestickChart },
+    { key: 'portfolio' as const, label: 'Portfolio', icon: Briefcase },
+    { key: 'learn' as const, label: 'Learn', icon: GraduationCap },
+  ]
+
+  const handleTabClick = (key: 'stocks' | 'options' | 'portfolio' | 'learn') => {
+    if (key === 'stocks') {
+      setActiveTab('stocks')
+    } else if (key === 'options') {
+      setCurrentPage('optionChain')
+    } else if (key === 'portfolio') {
+      setCurrentPage('portfolio')
+    } else if (key === 'learn') {
+      setCurrentPage('learning')
+    }
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafa] px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div className="min-h-screen bg-[#fafafa]">
 
-      {/* ═══ MARKET OVERVIEW HEADER ═════════════════════════════════════════ */}
-      <motion.div {...fadeIn}>
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#1a1a1a] tracking-tight">
-            Market Overview
-          </h2>
-          <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full ${
-              isMarketOpen() ? 'bg-[#00d09c]/10 text-[#00d09c]' : 'bg-[#6b7280]/10 text-[#6b7280]'
-            }`}>
-              <span className={`size-1.5 rounded-full ${isMarketOpen() ? 'bg-[#00d09c] animate-pulse' : 'bg-[#6b7280]'}`} />
-              {isMarketOpen() ? 'OPEN' : 'CLOSED'}
-            </span>
-            <span className="text-xs font-medium text-[#6b7280] bg-white border border-[#e5e7eb] px-2.5 py-1 rounded-lg">
-              NSE
-            </span>
-          </div>
+      {/* ═══ TAB BAR ═══════════════════════════════════════════════════════ */}
+      <div className="sticky top-14 md:top-14 z-30 bg-white border-b border-[#e5e7eb] px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+          {tabs.map((tab) => {
+            const Icon = tab.icon
+            const isActive = activeTab === tab.key
+            return (
+              <button
+                key={tab.key}
+                onClick={() => handleTabClick(tab.key)}
+                className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold whitespace-nowrap transition-all border-b-2 ${
+                  isActive
+                    ? 'text-[#00D09C] border-[#00D09C]'
+                    : 'text-[#6b7280] border-transparent hover:text-[#1a1a1a] hover:border-[#e5e7eb]'
+                }`}
+              >
+                <Icon className="size-4" />
+                {tab.label}
+              </button>
+            )
+          })}
         </div>
-        <p className="text-sm text-[#6b7280]">Indian Stock Market Live Updates</p>
-      </motion.div>
+      </div>
 
-      {/* ═══ 4 INDEX CARDS ══════════════════════════════════════════════════ */}
-      <motion.div {...fadeIn} transition={{ delay: 0.1 }}>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-semibold text-[#1a1a1a] flex items-center gap-2">
-            <Activity className="size-4 text-[#00D09C]" />
-            Indices
-          </h3>
-          <span className="text-[10px] text-[#6b7280] font-semibold uppercase tracking-wider">Click for details</span>
-        </div>
+      {/* ═══ STOCKS TAB CONTENT ═══════════════════════════════════════════ */}
+      {activeTab === 'stocks' && (
+        <div className="px-4 sm:px-6 lg:px-8 py-5 space-y-5">
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {indicesLoading ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <Card key={i} className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
-                <CardContent className="p-4">
-                  <Skeleton className="h-3 w-16 mb-2 bg-[#f5f5f5]" />
-                  <Skeleton className="h-7 w-28 mb-1.5 bg-[#f5f5f5]" />
-                  <Skeleton className="h-3 w-24 bg-[#f5f5f5]" />
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            displayIndices.slice(0, 4).map((index, i) => {
-              const isPositive = index.changePercent >= 0
-              return (
-                <motion.div
-                  key={index.id || i}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.05 * i, duration: 0.35 }}
-                >
-                  <Card
-                    onClick={() => handleIndexClick(index.symbol)}
-                    className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm hover:shadow-md hover:border-[#00D09C]/30 transition-all cursor-pointer group"
-                  >
+          {/* ── 4 Index Cards ─────────────────────────────────────────────── */}
+          <div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {indicesLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <Card key={i} className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2.5">
-                        <span className="text-[11px] font-bold text-[#6b7280] tracking-wider uppercase">
-                          {index.name || index.symbol}
-                        </span>
-                        {isPositive ? (
-                          <TrendingUp className="size-4 text-[#00d09c] group-hover:scale-110 transition-transform" />
-                        ) : (
-                          <TrendingDown className="size-4 text-[#eb5b3c] group-hover:scale-110 transition-transform" />
-                        )}
-                      </div>
-                      <div className="text-2xl font-bold font-mono text-[#1a1a1a] mb-1">
-                        {formatPrice(index.currentPrice)}
-                      </div>
-                      <div className={`flex items-center gap-1 text-xs font-semibold ${isPositive ? 'text-[#00d09c]' : 'text-[#eb5b3c]'}`}>
-                        {isPositive ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
-                        <span>{isPositive ? '+' : ''}{index.change.toFixed(2)} ({isPositive ? '+' : ''}{index.changePercent.toFixed(2)}%)</span>
-                      </div>
+                      <Skeleton className="h-3 w-16 mb-2 bg-[#f5f5f5]" />
+                      <Skeleton className="h-7 w-28 mb-1.5 bg-[#f5f5f5]" />
+                      <Skeleton className="h-3 w-24 bg-[#f5f5f5]" />
                     </CardContent>
                   </Card>
-                </motion.div>
-              )
-            })
-          )}
-        </div>
-      </motion.div>
-
-      {/* ═══ TOP GAINERS ════════════════════════════════════════════════════ */}
-      <motion.div {...fadeIn} transition={{ delay: 0.2 }}>
-        <StockSection
-          title="Top Gainers"
-          icon={<Flame className="size-4 text-[#00d09c]" />}
-          iconBg="bg-[#00d09c]/10"
-          iconColor="text-[#00d09c]"
-          stocks={displayGainers}
-          loading={gainersLoading}
-          navigateToStock={navigateToStock}
-          emptyText="No gainers data available"
-        />
-      </motion.div>
-
-      {/* ═══ TOP LOSERS ═════════════════════════════════════════════════════ */}
-      <motion.div {...fadeIn} transition={{ delay: 0.3 }}>
-        <StockSection
-          title="Top Losers"
-          icon={<TrendingDown className="size-4 text-[#eb5b3c]" />}
-          iconBg="bg-[#eb5b3c]/10"
-          iconColor="text-[#eb5b3c]"
-          stocks={displayLosers}
-          loading={losersLoading}
-          navigateToStock={navigateToStock}
-          emptyText="No losers data available"
-        />
-      </motion.div>
-
-      {/* ═══ OTHER STOCKS ═══════════════════════════════════════════════════ */}
-      <motion.div {...fadeIn} transition={{ delay: 0.4 }}>
-        <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
-          <CardContent className="p-0">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 pt-5 pb-3 gap-3">
-              <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-lg bg-[#6b7280]/10 flex items-center justify-center">
-                  <BarChart3 className="size-4 text-[#6b7280]" />
-                </div>
-                <h3 className="text-base font-semibold text-[#1a1a1a]">Other Stocks</h3>
-              </div>
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-[#6b7280]" />
-                <input
-                  type="text"
-                  placeholder="Search stocks..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 text-sm bg-[#f5f7fa] border border-[#e5e7eb] rounded-lg focus:outline-none focus:border-[#00D09C]/50 focus:ring-1 focus:ring-[#00D09C]/20 w-full sm:w-56 transition-all"
-                />
-              </div>
+                ))
+              ) : (
+                displayIndices.slice(0, 4).map((index, i) => {
+                  const isPositive = index.changePercent >= 0
+                  return (
+                    <Card
+                      key={index.id || i}
+                      onClick={() => handleIndexClick(index.symbol)}
+                      className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm hover:shadow-md hover:border-[#00D09C]/30 transition-all cursor-pointer group"
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2.5">
+                          <span className="text-[11px] font-bold text-[#6b7280] tracking-wider uppercase">
+                            {index.name || index.symbol}
+                          </span>
+                          {isPositive ? (
+                            <TrendingUp className="size-4 text-[#00d09c] group-hover:scale-110 transition-transform" />
+                          ) : (
+                            <TrendingDown className="size-4 text-[#eb5b3c] group-hover:scale-110 transition-transform" />
+                          )}
+                        </div>
+                        <div className="text-2xl font-bold font-mono text-[#1a1a1a] mb-1">
+                          {formatPrice(index.currentPrice)}
+                        </div>
+                        <div className={`flex items-center gap-1 text-xs font-semibold ${isPositive ? 'text-[#00d09c]' : 'text-[#eb5b3c]'}`}>
+                          {isPositive ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
+                          <span>{isPositive ? '+' : ''}{index.change.toFixed(2)} ({isPositive ? '+' : ''}{index.changePercent.toFixed(2)}%)</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })
+              )}
             </div>
+          </div>
 
-            {stocksLoading ? (
-              <div className="px-5 pb-5 space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="flex items-center justify-between py-2">
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="size-9 rounded-lg bg-[#f5f5f5]" />
-                      <div>
-                        <Skeleton className="h-4 w-16 bg-[#f5f5f5] mb-1" />
-                        <Skeleton className="h-3 w-24 bg-[#f5f5f5]" />
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <Skeleton className="h-4 w-16 bg-[#f5f5f5] mb-1 ml-auto" />
-                      <Skeleton className="h-3 w-20 bg-[#f5f5f5] ml-auto" />
-                    </div>
+          {/* ── Top Gainers ──────────────────────────────────────────────── */}
+          <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
+            <CardContent className="p-0">
+              <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="size-7 rounded-lg bg-[#00d09c]/10 flex items-center justify-center">
+                    <Flame className="size-3.5 text-[#00d09c]" />
                   </div>
-                ))}
+                  <h3 className="text-sm font-semibold text-[#1a1a1a]">Top Gainers</h3>
+                </div>
+                <span className="text-[11px] text-[#6b7280] font-medium">{displayGainers.length} stocks</span>
               </div>
-            ) : getOtherStocks().length === 0 ? (
-              <div className="px-5 pb-5 text-center py-8">
-                <p className="text-sm text-[#6b7280]">
-                  {searchQuery ? `No stocks found for "${searchQuery}"` : 'No stocks available'}
-                </p>
+              {gainersLoading ? (
+                <div className="px-5 pb-4 space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex items-center justify-between py-2">
+                      <Skeleton className="h-4 w-20 bg-[#f5f5f5]" />
+                      <Skeleton className="h-4 w-16 bg-[#f5f5f5]" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-2 pb-2 divide-y divide-[#f0f0f0]">
+                  {displayGainers.map((stock) => (
+                    <StockRow key={stock.id} stock={stock} onClick={() => navigateToStock(stock.symbol)} />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ── Top Losers ───────────────────────────────────────────────── */}
+          <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
+            <CardContent className="p-0">
+              <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="size-7 rounded-lg bg-[#eb5b3c]/10 flex items-center justify-center">
+                    <TrendingDown className="size-3.5 text-[#eb5b3c]" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-[#1a1a1a]">Top Losers</h3>
+                </div>
+                <span className="text-[11px] text-[#6b7280] font-medium">{displayLosers.length} stocks</span>
               </div>
-            ) : (
-              <div className="px-2 pb-2 divide-y divide-[#f0f0f0]">
-                {getOtherStocks().map((stock) => (
-                  <StockRow
-                    key={stock.id}
-                    stock={stock}
-                    onClick={() => navigateToStock(stock.symbol)}
+              {losersLoading ? (
+                <div className="px-5 pb-4 space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex items-center justify-between py-2">
+                      <Skeleton className="h-4 w-20 bg-[#f5f5f5]" />
+                      <Skeleton className="h-4 w-16 bg-[#f5f5f5]" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-2 pb-2 divide-y divide-[#f0f0f0]">
+                  {displayLosers.map((stock) => (
+                    <StockRow key={stock.id} stock={stock} onClick={() => navigateToStock(stock.symbol)} />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ── Other Stocks ─────────────────────────────────────────────── */}
+          <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
+            <CardContent className="p-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 pt-4 pb-2 gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="size-7 rounded-lg bg-[#6b7280]/10 flex items-center justify-center">
+                    <BarChart3 className="size-3.5 text-[#6b7280]" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-[#1a1a1a]">Other Stocks</h3>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-[#6b7280]" />
+                  <input
+                    type="text"
+                    placeholder="Search stocks..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8 pr-3 py-1.5 text-xs bg-[#f5f7fa] border border-[#e5e7eb] rounded-lg focus:outline-none focus:border-[#00D09C]/50 w-full sm:w-48 transition-all"
                   />
-                ))}
+                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+              {stocksLoading ? (
+                <div className="px-5 pb-4 space-y-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex items-center justify-between py-2">
+                      <Skeleton className="h-4 w-20 bg-[#f5f5f5]" />
+                      <Skeleton className="h-4 w-16 bg-[#f5f5f5]" />
+                    </div>
+                  ))}
+                </div>
+              ) : getOtherStocks().length === 0 ? (
+                <div className="px-5 pb-5 text-center py-6">
+                  <p className="text-sm text-[#6b7280]">
+                    {searchQuery ? `No stocks found for "${searchQuery}"` : 'No stocks available'}
+                  </p>
+                </div>
+              ) : (
+                <div className="px-2 pb-2 divide-y divide-[#f0f0f0]">
+                  {getOtherStocks().map((stock) => (
+                    <StockRow key={stock.id} stock={stock} onClick={() => navigateToStock(stock.symbol)} />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* ═══ Index Detail Drawer ═══════════════════════════════════════════ */}
       <IndexDetailDrawer
