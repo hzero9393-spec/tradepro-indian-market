@@ -4,6 +4,7 @@ import { verifyToken, getTokenFromHeaders } from '@/lib/auth'
 
 export interface AuthResult {
   userId: string
+  token?: string
   error?: NextResponse
 }
 
@@ -63,7 +64,7 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthRes
     }
   }
 
-  return { userId: payload.userId }
+  return { userId: payload.userId, token }
 }
 
 /**

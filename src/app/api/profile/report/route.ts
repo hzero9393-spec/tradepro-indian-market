@@ -101,15 +101,40 @@ function drawDivider(page: ReturnType<PDFDocument['addPage']>, y: number, width:
   })
 }
 
-// ─── Main POST Handler ──────────────────────────────────────────────
-export async function POST(request: NextRequest) {
+// ─── GET Handler (query param ?type=last|monthly|full) ──────────────
+export async function GET(request: NextRequest) {
   try {
-    // 1. Authenticate
     const auth = await authenticateRequest(request)
     if (auth.error) return auth.error
     const userId = auth.userId
 
-    // 2. Parse body
+    const { searchParams } = new URL(request.url)
+    const reportType = searchParams.get('type')
+
+    if (!reportType || !['last', 'monthly', 'full'].includes(reportType)) {
+      return NextResponse.json(
+        { error: 'Invalid report type. Must be "last", "monthly", or "full".' },
+        { status: 400 }
+      )
+    }
+
+    return await generateReport(userId, reportType)
+  } catch (error) {
+    console.error('[GET /api/profile/report] Error:', error)
+    return NextResponse.json(
+      { error: 'Failed to generate report' },
+      { status: 500 }
+    )
+  }
+}
+
+// ─── POST Handler (body { type: 'last'|'monthly'|'full' }) ──────────
+export async function POST(request: NextRequest) {
+  try {
+    const auth = await authenticateRequest(request)
+    if (auth.error) return auth.error
+    const userId = auth.userId
+
     let body: { type?: string }
     try {
       body = await request.json()
@@ -128,52 +153,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Fetch user data
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        virtualBalance: true,
-        totalTrades: true,
-        winRate: true,
-        totalPnl: true,
-        subscription: true,
-        createdAt: true,
-      },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    // 4. Fetch trades based on type
-    const now = new Date()
-    let tradesWhere: Record<string, unknown> = { userId }
-
-    if (reportType === 'last') {
-      // Get the single most recent trade
-      const lastTrade = await db.trade.findFirst({
-        where: { userId },
-        orderBy: { executedAt: 'desc' },
-      })
-      const trades = lastTrade ? [lastTrade] : []
-      return await generatePDF(user, trades, reportType)
-    }
-
-    if (reportType === 'monthly') {
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-      tradesWhere = { userId, executedAt: { gte: thirtyDaysAgo } }
-    }
-    // 'full' — no extra filter
-
-    const trades = await db.trade.findMany({
-      where: tradesWhere,
-      orderBy: { executedAt: 'desc' },
-    })
-
-    return await generatePDF(user, trades, reportType)
+    return await generateReport(userId, reportType)
   } catch (error) {
     console.error('[POST /api/profile/report] Error:', error)
     return NextResponse.json(
@@ -181,6 +161,54 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+// ─── Shared Report Generation Logic ─────────────────────────────────
+async function generateReport(userId: string, reportType: string): Promise<NextResponse> {
+  // Fetch user data
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      virtualBalance: true,
+      totalTrades: true,
+      winRate: true,
+      totalPnl: true,
+      subscription: true,
+      createdAt: true,
+    },
+  })
+
+  if (!user) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 })
+  }
+
+  // Fetch trades based on type
+  const now = new Date()
+  let tradesWhere: Record<string, unknown> = { userId }
+
+  if (reportType === 'last') {
+    const lastTrade = await db.trade.findFirst({
+      where: { userId },
+      orderBy: { executedAt: 'desc' },
+    })
+    const trades = lastTrade ? [lastTrade] : []
+    return await generatePDF(user, trades, reportType)
+  }
+
+  if (reportType === 'monthly') {
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    tradesWhere = { userId, executedAt: { gte: thirtyDaysAgo } }
+  }
+
+  const trades = await db.trade.findMany({
+    where: tradesWhere,
+    orderBy: { executedAt: 'desc' },
+  })
+
+  return await generatePDF(user, trades, reportType)
 }
 
 // ─── PDF Generation ─────────────────────────────────────────────────
