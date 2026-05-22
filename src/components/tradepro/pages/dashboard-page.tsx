@@ -23,7 +23,6 @@ import {
   Briefcase,
 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
-import { IndexDetailDrawer } from '@/components/tradepro/index-detail-drawer'
 import { motion } from 'framer-motion'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -157,19 +156,10 @@ function StockRow({ stock, onClick }: { stock: StockData; onClick: () => void })
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export function DashboardPage() {
-  const { navigateToStock, setCurrentPage } = useAppStore()
+  const { navigateToStock, navigateToIndex, setCurrentPage } = useAppStore()
 
   // Active tab
   const [activeTab, setActiveTab] = useState<'stocks' | 'options' | 'portfolio' | 'learn'>('stocks')
-
-  // Index detail drawer
-  const [selectedIndexSymbol, setSelectedIndexSymbol] = useState<string | null>(null)
-  const [drawerOpen, setDrawerOpen] = useState(false)
-
-  const handleIndexClick = (symbol: string) => {
-    setSelectedIndexSymbol(symbol)
-    setDrawerOpen(true)
-  }
 
   // Data states
   const [apiIndices, setApiIndices] = useState<IndexData[]>([])
@@ -250,7 +240,7 @@ export function DashboardPage() {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail
-      if (detail?.symbol) handleIndexClick(detail.symbol)
+      if (detail?.symbol) navigateToIndex(detail.symbol)
     }
     window.addEventListener('openIndexDetail', handler)
     return () => window.removeEventListener('openIndexDetail', handler)
@@ -354,7 +344,7 @@ export function DashboardPage() {
                   return (
                     <Card
                       key={index.id || i}
-                      onClick={() => handleIndexClick(index.symbol)}
+                      onClick={() => navigateToIndex(index.symbol)}
                       className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm hover:shadow-md hover:border-[#00D09C]/30 transition-all cursor-pointer group"
                     >
                       <CardContent className="p-4">
@@ -493,12 +483,7 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* ═══ Index Detail Drawer ═══════════════════════════════════════════ */}
-      <IndexDetailDrawer
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        symbol={selectedIndexSymbol}
-      />
+
     </div>
   )
 }

@@ -4,6 +4,7 @@ export type PageId =
   | 'dashboard'
   | 'trading'      // Stock trading screen
   | 'stockOverview' // Stock detail/overview page
+  | 'indexDetail'  // Index detail page with chart + stats
   | 'positions'    // Positions with Index/Stock tabs
   | 'orders'       // Orders with Index/Stock tabs
   | 'portfolio'    // Portfolio overview
@@ -26,18 +27,24 @@ interface AppState {
   currentPage: PageId
   sidebarOpen: boolean
   selectedStockSymbol: string | null
+  selectedIndexSymbol: string | null
   setCurrentPage: (page: PageId) => void
   setSidebarOpen: (open: boolean) => void
   setSelectedStockSymbol: (symbol: string | null) => void
+  setSelectedIndexSymbol: (symbol: string | null) => void
   navigateToStock: (symbol: string) => void
+  navigateToIndex: (symbol: string) => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
   currentPage: 'dashboard',
   sidebarOpen: false,
   selectedStockSymbol: null,
+  selectedIndexSymbol: null,
   setCurrentPage: (page) => set({ currentPage: page, sidebarOpen: false }),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   setSelectedStockSymbol: (symbol) => set({ selectedStockSymbol: symbol }),
+  setSelectedIndexSymbol: (symbol) => set({ selectedIndexSymbol: symbol }),
   navigateToStock: (symbol) => set({ selectedStockSymbol: symbol, currentPage: 'stockOverview', sidebarOpen: false }),
+  navigateToIndex: (symbol) => set({ selectedIndexSymbol: symbol, currentPage: 'indexDetail', sidebarOpen: false }),
 }))

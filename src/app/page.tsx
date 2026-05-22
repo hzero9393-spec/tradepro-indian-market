@@ -16,6 +16,7 @@ import { ReportsPage } from '@/components/tradepro/pages/reports-page'
 import { ProfilePage } from '@/components/tradepro/pages/profile-page'
 import { StockOverviewPage } from '@/components/tradepro/pages/stock-overview-page'
 import { OptionChainPage } from '@/components/tradepro/pages/option-chain-page'
+import { IndexDetailPage } from '@/components/tradepro/pages/index-detail-page'
 import { FuturesPage } from '@/components/tradepro/pages/futures-page'
 import { LearningPage } from '@/components/tradepro/pages/learning-page'
 import { IndexTicker } from '@/components/tradepro/index-ticker'
@@ -62,6 +63,8 @@ function PageContent({ page }: { page: string }) {
       return <PortfolioPage />
     case 'reports':
       return <ReportsPage />
+    case 'indexDetail':
+      return <IndexDetailPage />
     case 'optionChain':
       return <OptionChainPage />
     case 'futures':

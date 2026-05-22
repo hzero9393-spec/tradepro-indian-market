@@ -1,11 +1,9 @@
 'use client'
 
-import { Menu, Search, Bell, LogOut, ChevronDown, User, FileBarChart, TrendingUp } from 'lucide-react'
+import { Menu, Search, Bell, LogOut, User, FileBarChart, TrendingUp } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
-import { useAuthStore } from '@/lib/auth-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,18 +20,10 @@ interface TopBarProps {
 
 export function TopBar({ userName, onLogout }: TopBarProps) {
   const { setSidebarOpen, setCurrentPage } = useAppStore()
-  const { user } = useAuthStore()
 
   const initials = userName
     ? userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : 'TP'
-
-  const balance = user?.virtualBalance ?? 100000
-  const totalPnl = user?.totalPnl ?? 0
-  const isProfit = totalPnl >= 0
-
-  const formatINR = (value: number) =>
-    value.toLocaleString('en-IN', { maximumFractionDigits: 0 })
 
   return (
     <header
@@ -112,28 +102,6 @@ export function TopBar({ userName, onLogout }: TopBarProps) {
 
         {/* Right section */}
         <div className="flex items-center gap-2">
-          {/* Balance Pill - Groww style */}
-          <div
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer transition-colors hover:bg-[#f5f5f5]"
-            onClick={() => setCurrentPage('portfolio')}
-          >
-            <span className="text-xs" style={{ color: '#9ca3af' }}>Balance</span>
-            <span className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>
-              ₹{formatINR(balance)}
-            </span>
-            {totalPnl !== 0 && (
-              <span
-                className="text-xs font-semibold px-1.5 py-0.5 rounded"
-                style={{
-                  color: isProfit ? '#00D09C' : '#eb5b3c',
-                  background: isProfit ? 'rgba(0,208,156,0.08)' : 'rgba(235,91,60,0.08)',
-                }}
-              >
-                {isProfit ? '+' : ''}{isProfit ? '+' : '-'}₹{formatINR(Math.abs(totalPnl))}
-              </span>
-            )}
-          </div>
-
           {/* Notification */}
           <Button
             variant="ghost"
@@ -147,14 +115,13 @@ export function TopBar({ userName, onLogout }: TopBarProps) {
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-[#f5f5f5] outline-none">
+              <button className="flex items-center justify-center rounded-full transition-colors hover:ring-2 hover:ring-[#00D09C]/20 outline-none">
                 <div
-                  className="flex size-7 items-center justify-center rounded-full text-[10px] font-bold"
+                  className="flex size-8 items-center justify-center rounded-full text-[11px] font-bold"
                   style={{ background: '#00D09C', color: '#ffffff' }}
                 >
                   {initials}
                 </div>
-                <ChevronDown className="size-3 text-[#9ca3af] hidden md:block" />
               </button>
             </DropdownMenuTrigger>
 
