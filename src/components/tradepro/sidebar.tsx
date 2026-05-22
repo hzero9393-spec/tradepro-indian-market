@@ -104,26 +104,19 @@ export function Sidebar({ onLogout, userName }: SidebarProps) {
           </div>
         </div>
 
-        {/* User quick info */}
+        {/* User avatar icon only - no name */}
         {userName && (
           <div className="px-4 pb-3">
             <button
               onClick={() => setCurrentPage('profile')}
-              className="flex w-full items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-[#f5f5f5]"
+              className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-[#f5f5f5]"
+              aria-label="Go to profile"
             >
               <div
                 className="flex size-7 items-center justify-center rounded-full text-[10px] font-bold shrink-0"
                 style={{ background: '#00D09C', color: '#ffffff' }}
               >
                 {initials}
-              </div>
-              <div className="flex-1 min-w-0 text-left">
-                <p className="text-xs font-semibold truncate" style={{ color: '#1a1a1a' }}>
-                  {userName}
-                </p>
-                <p className="text-[10px] truncate" style={{ color: '#9ca3af' }}>
-                  Paper Trading
-                </p>
               </div>
             </button>
           </div>
