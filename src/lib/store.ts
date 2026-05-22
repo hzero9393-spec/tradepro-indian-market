@@ -11,6 +11,15 @@ export type PageId =
   | 'futures'      // Futures trading
   | 'learning'     // Learn section
   | 'profile'      // Profile/settings
+  // Footer pages
+  | 'privacy-policy'
+  | 'terms-of-service'
+  | 'support'
+  | 'contact-us'
+  | 'faq'
+  | 'disclaimer'
+  | 'about-us'
+  | 'refund-policy'
 
 interface AppState {
   currentPage: PageId

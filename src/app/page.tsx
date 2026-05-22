@@ -19,8 +19,31 @@ import { FuturesPage } from '@/components/tradepro/pages/futures-page'
 import { LearningPage } from '@/components/tradepro/pages/learning-page'
 import { IndexTicker } from '@/components/tradepro/index-ticker'
 import { TradeSuccessProvider } from '@/components/tradepro/trade-success-popup'
+import { Footer } from '@/components/tradepro/footer'
+import {
+  PrivacyPolicyPage,
+  TermsOfServicePage,
+  SupportPage,
+  ContactUsPage,
+  FAQPage,
+  DisclaimerPage,
+  AboutUsPage,
+  RefundPolicyPage,
+} from '@/components/tradepro/footer-pages'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { TrendingUp } from 'lucide-react'
+
+// Footer page IDs — these pages show their own footer-free layout
+const FOOTER_PAGES = new Set([
+  'privacy-policy',
+  'terms-of-service',
+  'support',
+  'contact-us',
+  'faq',
+  'disclaimer',
+  'about-us',
+  'refund-policy',
+])
 
 function PageContent({ page }: { page: string }) {
   switch (page) {
@@ -44,6 +67,23 @@ function PageContent({ page }: { page: string }) {
       return <LearningPage />
     case 'profile':
       return <ProfilePage />
+    // Footer pages
+    case 'privacy-policy':
+      return <PrivacyPolicyPage />
+    case 'terms-of-service':
+      return <TermsOfServicePage />
+    case 'support':
+      return <SupportPage />
+    case 'contact-us':
+      return <ContactUsPage />
+    case 'faq':
+      return <FAQPage />
+    case 'disclaimer':
+      return <DisclaimerPage />
+    case 'about-us':
+      return <AboutUsPage />
+    case 'refund-policy':
+      return <RefundPolicyPage />
     default:
       return <DashboardPage />
   }
@@ -122,6 +162,8 @@ export default function Home() {
     logout()
   }
 
+  const isFooterPage = FOOTER_PAGES.has(currentPage)
+
   return (
     <TradeSuccessProvider>
       <div className="flex min-h-screen flex-col" style={{ background: '#f5f7fa' }}>
@@ -143,47 +185,18 @@ export default function Home() {
         <TopBar userName={user?.name} onLogout={handleLogout} />
 
         {/* Indian Market Index Ticker */}
-        <IndexTicker />
+        {!isFooterPage && <IndexTicker />}
 
         {/* Main Content */}
         <main className="flex-1 md:ml-[240px] pt-16 pb-16 md:pb-0">
           <PageContent page={currentPage} />
 
-          {/* Sticky Footer */}
-          <footer
-            className="px-6 py-4"
-            style={{
-              background: '#ffffff',
-              borderTop: '1px solid #e5e7eb',
-            }}
-          >
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl mx-auto">
-              <div className="flex items-center gap-2">
-                <div
-                  className="flex size-6 items-center justify-center rounded-md"
-                  style={{
-                    background: '#5367ff',
-                    color: '#ffffff',
-                  }}
-                >
-                  <TrendingUp className="size-3.5" />
-                </div>
-                <span className="text-sm font-semibold" style={{ color: '#1a1a2e' }}>TradePro</span>
-                <span className="text-xs" style={{ color: '#6b7280' }}>© 2025</span>
-              </div>
-              <div className="flex items-center gap-4 text-xs" style={{ color: '#6b7280' }}>
-                <span>Paper Trading Simulator</span>
-                <span>•</span>
-                <span>No Real Money</span>
-                <span>•</span>
-                <span>Learning Only</span>
-              </div>
-            </div>
-          </footer>
+          {/* Footer */}
+          <Footer />
         </main>
 
         {/* Mobile Bottom Nav */}
-        <MobileNav />
+        {!isFooterPage && <MobileNav />}
       </div>
     </TradeSuccessProvider>
   )
