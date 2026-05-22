@@ -121,8 +121,8 @@ export function PositionsPage() {
 
   useEffect(() => {
     fetchPositions()
-    // Auto-refresh every 5 seconds for live P&L
-    const interval = setInterval(fetchPositions, 5000)
+    // Auto-refresh every 30 seconds (reduced from 5s to cut DB load)
+    const interval = setInterval(fetchPositions, 30000)
     return () => clearInterval(interval)
   }, [fetchPositions])
 
@@ -147,7 +147,10 @@ export function PositionsPage() {
         toast.success(`✅ ${symbol} squared off successfully!`, {
           description: pnlStr,
         })
-        await fetchPositions()
+        // Optimistic update: remove from local state immediately
+        setPositions(prev => prev.filter(p => p.id !== positionId))
+        // Background refresh
+        fetchPositions()
       } else {
         toast.error(data.error || 'Failed to square off position')
       }

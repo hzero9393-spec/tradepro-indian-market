@@ -218,44 +218,41 @@ export function DashboardPage() {
   const [tradesLoading, setTradesLoading] = useState(true)
   const [marketLoading, setMarketLoading] = useState(true)
 
-  // ─── Fetch Portfolio ─────────────────────────────────────────────
+  // ─── Fetch Portfolio (now includes positions - single API call!) ──
   const fetchPortfolio = useCallback(async () => {
-    if (!token) { setPortfolioLoading(false); return }
+    if (!token) { setPortfolioLoading(false); setPositionsLoading(false); return }
     try {
       setPortfolioLoading(true)
+      setPositionsLoading(true)
       const res = await fetch('/api/trade/portfolio', {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) {
         const json = await res.json()
-        setPortfolio(json.data)
+        const data = json.data as PortfolioData
+        setPortfolio(data)
+        // Extract positions from portfolio response (no separate API call!)
+        if (data.positions && data.positions.length > 0) {
+          setPositions(data.positions)
+        } else if (data.segments) {
+          const allPositions = [
+            ...(data.segments.equity.positions || []),
+            ...(data.segments.futures.positions || []),
+            ...(data.segments.options.positions || []),
+          ]
+          setPositions(allPositions)
+        } else {
+          setPositions([])
+        }
       } else {
         setPortfolio(fallbackPortfolio)
-      }
-    } catch {
-      setPortfolio(fallbackPortfolio)
-    } finally {
-      setPortfolioLoading(false)
-    }
-  }, [token])
-
-  // ─── Fetch Positions ─────────────────────────────────────────────
-  const fetchPositions = useCallback(async () => {
-    if (!token) { setPositionsLoading(false); return }
-    try {
-      setPositionsLoading(true)
-      const res = await fetch('/api/trade/positions', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
-        const json = await res.json()
-        setPositions(json.data || [])
-      } else {
         setPositions([])
       }
     } catch {
+      setPortfolio(fallbackPortfolio)
       setPositions([])
     } finally {
+      setPortfolioLoading(false)
       setPositionsLoading(false)
     }
   }, [token])
@@ -299,22 +296,21 @@ export function DashboardPage() {
     }
   }, [])
 
-  // ─── Load all data on mount ──────────────────────────────────────
+  // ─── Load all data on mount (reduced from 4 API calls to 3!) ──
   useEffect(() => {
-    fetchPortfolio()
-    fetchPositions()
+    fetchPortfolio()  // Now returns both portfolio + positions
     fetchTrades()
     fetchMarketIndices()
-  }, [fetchPortfolio, fetchPositions, fetchTrades, fetchMarketIndices])
+  }, [fetchPortfolio, fetchTrades, fetchMarketIndices])
 
-  // ─── Auto-refresh positions & portfolio every 10 sec for live P&L ──
+  // ─── Auto-refresh every 30 sec (reduced from 10s to cut DB load) ──
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchPositions()
-      fetchPortfolio()
-    }, 10000)
+      fetchPortfolio()  // Returns both portfolio + positions
+      fetchTrades()
+    }, 30000)
     return () => clearInterval(interval)
-  }, [fetchPositions, fetchPortfolio])
+  }, [fetchPortfolio, fetchTrades])
 
   // ─── Listen for index detail events from ticker ────────────────
   useEffect(() => {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { authenticateRequest } from '@/lib/trade-auth'
+import { cache, CacheKeys, CacheTTL } from '@/lib/cache'
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,73 +10,153 @@ export async function GET(request: NextRequest) {
 
     const userId = auth.userId
 
-    // Get user with current balance
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: {
-        virtualBalance: true,
-        marginUsed: true,
-        totalPnl: true,
-        totalTrades: true,
-      }
-    })
+    // ─── Parallel: Get user + positions in 2 queries ────────────
+    const [user, positions] = await Promise.all([
+      db.user.findUnique({
+        where: { id: userId },
+        select: {
+          virtualBalance: true,
+          marginUsed: true,
+          totalPnl: true,
+          totalTrades: true,
+        },
+      }),
+      db.position.findMany({
+        where: { userId, isOpen: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ])
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Get all open positions
-    const positions = await db.position.findMany({
-      where: {
-        userId,
-        isOpen: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+    // If no positions, return fast
+    if (positions.length === 0) {
+      const totalPortfolioValue = user.virtualBalance
+      const availableMargin = user.virtualBalance - user.marginUsed
+      const initialCapital = 100000
+      const totalReturn = Math.round(((totalPortfolioValue - initialCapital) / initialCapital) * 10000) / 100
 
-    // Enrich each position with current price and calculate values
+      // Also get realized P&L from closed positions
+      const closedAgg = await db.position.aggregate({
+        where: { userId, isOpen: false },
+        _sum: { realizedPnl: true },
+      })
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          virtualBalance: user.virtualBalance,
+          marginUsed: user.marginUsed,
+          availableMargin: Math.max(0, availableMargin),
+          totalInvested: 0,
+          totalCurrentValue: 0,
+          totalUnrealizedPnl: 0,
+          totalRealizedPnl: closedAgg._sum.realizedPnl || 0,
+          totalPortfolioValue,
+          totalPnl: user.totalPnl,
+          totalReturn,
+          totalTrades: user.totalTrades,
+          initialCapital,
+          openPositionsCount: 0,
+          segments: {
+            equity: { count: 0, invested: 0, currentValue: 0, unrealizedPnl: 0, positions: [] },
+            futures: { count: 0, invested: 0, currentValue: 0, unrealizedPnl: 0, marginUsed: 0, positions: [] },
+            options: { count: 0, invested: 0, currentValue: 0, unrealizedPnl: 0, marginUsed: 0, positions: [] },
+          },
+          // Include enriched positions so frontend doesn't need separate call
+          positions: [],
+        },
+      })
+    }
+
+    // ─── Batch: Collect symbols for price lookup ────────────────
+    const equitySymbols = new Set<string>()
+    const futureSymbols = new Set<string>()
+    const optionKeys: { underlying: string; optionType: string; strikePrice: number }[] = []
+
+    for (const pos of positions) {
+      if (pos.segment === 'EQUITY') {
+        equitySymbols.add(pos.symbol.toUpperCase())
+      } else if (pos.segment === 'FUTURES') {
+        futureSymbols.add(pos.symbol.toUpperCase())
+      } else if (pos.segment === 'OPTIONS' && pos.optionType && pos.strikePrice) {
+        optionKeys.push({
+          underlying: pos.symbol.toUpperCase(),
+          optionType: pos.optionType,
+          strikePrice: pos.strikePrice,
+        })
+      }
+    }
+
+    // ─── 3 parallel batch price queries ─────────────────────────
+    const [stockPrices, futurePrices, optionPrices, closedAgg] = await Promise.all([
+      equitySymbols.size > 0
+        ? db.stock.findMany({
+            where: { symbol: { in: Array.from(equitySymbols) }, isActive: true },
+            select: { symbol: true, currentPrice: true, change: true, changePercent: true, name: true },
+          })
+        : Promise.resolve([]),
+      futureSymbols.size > 0
+        ? db.future.findMany({
+            where: { underlying: { in: Array.from(futureSymbols) }, isActive: true },
+            orderBy: { expiryDate: 'asc' },
+            select: { underlying: true, ltp: true, change: true, changePercent: true },
+          })
+        : Promise.resolve([]),
+      optionKeys.length > 0
+        ? db.option.findMany({
+            where: {
+              OR: optionKeys.map(ok => ({
+                underlying: ok.underlying,
+                optionType: ok.optionType,
+                strikePrice: ok.strikePrice,
+                isActive: true,
+              })),
+            },
+            orderBy: { expiryDate: 'asc' },
+            select: { underlying: true, optionType: true, strikePrice: true, ltp: true, change: true, changePercent: true },
+          })
+        : Promise.resolve([]),
+      // Get realized P&L aggregate instead of fetching all closed positions
+      db.position.aggregate({
+        where: { userId, isOpen: false },
+        _sum: { realizedPnl: true },
+      }),
+    ])
+
+    // ─── Build lookup maps ──────────────────────────────────────
+    const stockPriceMap = new Map(stockPrices.map(s => [s.symbol.toUpperCase(), s]))
+    const futurePriceMap = new Map(futurePrices.map(f => [f.underlying.toUpperCase(), f]))
+    const optionPriceMap = new Map(
+      optionPrices.map(o => [`${o.underlying.toUpperCase()}:${o.optionType}:${o.strikePrice}`, o])
+    )
+
+    // ─── Enrich positions (no DB writes!) ───────────────────────
     let totalInvested = 0
     let totalCurrentValue = 0
     let totalUnrealizedPnl = 0
-    const equityPositions = []
-    const futuresPositions = []
-    const optionsPositions = []
+    const equityPositions: (typeof positions[number] & { currentPrice: number; currentValue: number; unrealizedPnl: number; unrealizedPnlPercent: number })[] = []
+    const futuresPositions: (typeof positions[number] & { currentPrice: number; currentValue: number; unrealizedPnl: number; unrealizedPnlPercent: number })[] = []
+    const optionsPositions: (typeof positions[number] & { currentPrice: number; currentValue: number; unrealizedPnl: number; unrealizedPnlPercent: number })[] = []
+    const allEnrichedPositions: (typeof positions[number] & { currentPrice: number; currentValue: number; unrealizedPnl: number; unrealizedPnlPercent: number })[] = []
 
     for (const position of positions) {
       let currentPrice = position.currentPrice
 
-      // Get latest price from the market data
       if (position.segment === 'EQUITY') {
-        const stock = await db.stock.findFirst({
-          where: { symbol: { equals: position.symbol, mode: 'insensitive' }, isActive: true },
-          select: { currentPrice: true, change: true, changePercent: true, name: true },
-        })
-        if (stock) currentPrice = stock.currentPrice
+        const stockData = stockPriceMap.get(position.symbol.toUpperCase())
+        if (stockData) currentPrice = stockData.currentPrice
       } else if (position.segment === 'FUTURES') {
-        const future = await db.future.findFirst({
-          where: {
-            underlying: { equals: position.symbol, mode: 'insensitive' },
-            isActive: true,
-          },
-          orderBy: { expiryDate: 'asc' },
-          select: { ltp: true },
-        })
-        if (future) currentPrice = future.ltp
-      } else if (position.segment === 'OPTIONS') {
-        const option = await db.option.findFirst({
-          where: {
-            underlying: { equals: position.symbol, mode: 'insensitive' },
-            optionType: position.optionType,
-            strikePrice: position.strikePrice,
-            isActive: true,
-          },
-          orderBy: { expiryDate: 'asc' },
-          select: { ltp: true },
-        })
-        if (option) currentPrice = option.ltp
+        const futureData = futurePriceMap.get(position.symbol.toUpperCase())
+        if (futureData) currentPrice = futureData.ltp
+      } else if (position.segment === 'OPTIONS' && position.optionType && position.strikePrice) {
+        const optKey = `${position.symbol.toUpperCase()}:${position.optionType}:${position.strikePrice}`
+        const optionData = optionPriceMap.get(optKey)
+        if (optionData) currentPrice = optionData.ltp
       }
 
-      // Calculate unrealized P&L based on direction
       let unrealizedPnl: number
       if (position.tradeDirection === 'BUY') {
         unrealizedPnl = (currentPrice - position.entryPrice) * position.quantity
@@ -83,7 +164,6 @@ export async function GET(request: NextRequest) {
         unrealizedPnl = (position.entryPrice - currentPrice) * position.quantity
       }
       unrealizedPnl = Math.round(unrealizedPnl * 100) / 100
-
       const currentValue = Math.round(position.quantity * currentPrice * 100) / 100
 
       totalInvested += position.totalInvested
@@ -100,6 +180,8 @@ export async function GET(request: NextRequest) {
           : 0,
       }
 
+      allEnrichedPositions.push(enrichedPosition)
+
       if (position.segment === 'EQUITY') {
         equityPositions.push(enrichedPosition)
       } else if (position.segment === 'FUTURES') {
@@ -107,34 +189,25 @@ export async function GET(request: NextRequest) {
       } else {
         optionsPositions.push(enrichedPosition)
       }
-
-      // Update position with latest values
-      await db.position.update({
-        where: { id: position.id },
-        data: {
-          currentPrice,
-          currentValue,
-          unrealizedPnl,
-        }
-      })
     }
 
-    // Calculate portfolio metrics
+    // ─── Calculate portfolio metrics ────────────────────────────
     const totalPortfolioValue = user.virtualBalance + totalCurrentValue
     const availableMargin = user.virtualBalance - user.marginUsed
-    const initialCapital = 100000 // Default starting capital
+    const initialCapital = 100000
     const totalReturn = Math.round(((totalPortfolioValue - initialCapital) / initialCapital) * 10000) / 100
+    const totalRealizedPnl = closedAgg._sum.realizedPnl || 0
 
-    // Get closed positions count and total realized P&L
-    const closedPositions = await db.position.findMany({
-      where: {
-        userId,
-        isOpen: false,
-      },
-      select: { realizedPnl: true },
-    })
+    // ─── Cache prices for other API calls ───────────────────────
+    for (const s of stockPrices) {
+      cache.set(CacheKeys.stockPrice(s.symbol), s, CacheTTL.STOCK_PRICE)
+    }
+    for (const f of futurePrices) {
+      cache.set(CacheKeys.futurePrice(f.underlying), f, CacheTTL.FUTURE_PRICE)
+    }
 
-    const totalRealizedPnl = closedPositions.reduce((sum, p) => sum + p.realizedPnl, 0)
+    // ─── Invalidate user balance cache after read ───────────────
+    cache.delete(CacheKeys.userBalance(userId))
 
     return NextResponse.json({
       success: true,
@@ -184,9 +257,10 @@ export async function GET(request: NextRequest) {
           },
         },
 
-        // Open positions count
+        // Include enriched positions so frontend doesn't need separate call
+        positions: allEnrichedPositions,
         openPositionsCount: positions.length,
-      }
+      },
     })
   } catch (error) {
     console.error('[GET /api/trade/portfolio] Error:', error)

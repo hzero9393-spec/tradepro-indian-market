@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { authenticateRequest, calculateBrokerage } from '@/lib/trade-auth'
+import { cache, CacheKeys, CacheTTL } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { symbol, direction, orderType, segment, productType, quantity, price } = body
 
-    // Validation
+    // ─── Validation ─────────────────────────────────────────────
     if (!symbol || !direction || !orderType || !segment || !productType || !quantity) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
@@ -26,15 +27,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Quantity must be positive integer' }, { status: 400 })
     }
 
-    // Get user
+    // ─── Get user (use cached balance if available) ─────────────
     const user = await db.user.findUnique({ where: { id: userId } })
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
-    // ─── EQUITY Segment ────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════
+    // EQUITY Segment
+    // ═══════════════════════════════════════════════════════════════
     if (segment === 'EQUITY') {
-      const stock = await db.stock.findFirst({
-        where: { symbol: { equals: symbol, mode: 'insensitive' }, isActive: true }
-      })
+      // Try cache first, then DB
+      let stock = cache.get<{ currentPrice: number; symbol: string; isActive: boolean } & Record<string, unknown>>(
+        CacheKeys.stockPrice(symbol)
+      ) as (typeof cache extends Map<string, infer V> ? V : never) | null
+
+      if (!stock) {
+        stock = await db.stock.findFirst({
+          where: { symbol: { equals: symbol, mode: 'insensitive' }, isActive: true }
+        })
+        if (stock) {
+          cache.set(CacheKeys.stockPrice(stock.symbol), stock, CacheTTL.STOCK_PRICE)
+        }
+      }
+
       if (!stock) return NextResponse.json({ error: `Stock not found: ${symbol}` }, { status: 404 })
 
       const fillPrice = orderType === 'MARKET' ? stock.currentPrice : (price || stock.currentPrice)
@@ -67,9 +81,9 @@ export async function POST(request: NextRequest) {
               tradeDirection: 'BUY',
               segment: 'EQUITY',
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
-              symbol: stock.symbol,
+              symbol: stock!.symbol,
               quantity,
-              price: price || stock.currentPrice,
+              price: price || stock!.currentPrice,
               fillPrice,
               totalValue,
               brokerage,
@@ -85,7 +99,7 @@ export async function POST(request: NextRequest) {
               segment: 'EQUITY',
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
               tradeDirection: 'BUY',
-              symbol: stock.symbol,
+              symbol: stock!.symbol,
               quantity,
               fillPrice,
               totalValue,
@@ -95,7 +109,7 @@ export async function POST(request: NextRequest) {
 
           const existingPosition = await tx.position.findFirst({
             where: {
-              userId: user.id, symbol: stock.symbol, segment: 'EQUITY',
+              userId: user.id, symbol: stock!.symbol, segment: 'EQUITY',
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
               tradeDirection: 'BUY', isOpen: true,
             }
@@ -105,7 +119,7 @@ export async function POST(request: NextRequest) {
             const newQty = existingPosition.quantity + quantity
             const newInvested = existingPosition.totalInvested + totalValue
             const newEntry = newInvested / newQty
-            const newCurrent = newQty * stock.currentPrice
+            const newCurrent = newQty * stock!.currentPrice
             await tx.position.update({
               where: { id: existingPosition.id },
               data: {
@@ -113,18 +127,18 @@ export async function POST(request: NextRequest) {
                 entryPrice: Math.round(newEntry * 100) / 100,
                 totalInvested: newInvested,
                 currentValue: newCurrent,
-                currentPrice: stock.currentPrice,
+                currentPrice: stock!.currentPrice,
                 unrealizedPnl: Math.round((newCurrent - newInvested) * 100) / 100,
               }
             })
           } else {
-            const currentValue = quantity * stock.currentPrice
+            const currentValue = quantity * stock!.currentPrice
             await tx.position.create({
               data: {
                 userId: user.id, segment: 'EQUITY',
                 productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
-                tradeDirection: 'BUY', symbol: stock.symbol, quantity,
-                entryPrice: fillPrice, currentPrice: stock.currentPrice,
+                tradeDirection: 'BUY', symbol: stock!.symbol, quantity,
+                entryPrice: fillPrice, currentPrice: stock!.currentPrice,
                 totalInvested: totalValue, currentValue,
                 unrealizedPnl: Math.round((currentValue - totalValue) * 100) / 100,
                 isOpen: true,
@@ -134,6 +148,10 @@ export async function POST(request: NextRequest) {
 
           return { order, trade, updatedUser }
         })
+
+        // Invalidate caches
+        cache.deleteByPrefix(`ubal:${userId}`)
+        if (auth.token) cache.delete(CacheKeys.auth(auth.token))
 
         return NextResponse.json({
           success: true,
@@ -186,9 +204,9 @@ export async function POST(request: NextRequest) {
               tradeDirection: 'SELL',
               segment: 'EQUITY',
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
-              symbol: stock.symbol,
+              symbol: stock!.symbol,
               quantity,
-              price: price || stock.currentPrice,
+              price: price || stock!.currentPrice,
               fillPrice,
               totalValue,
               brokerage,
@@ -201,7 +219,7 @@ export async function POST(request: NextRequest) {
             data: {
               userId: user.id, orderId: order.id, segment: 'EQUITY',
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
-              tradeDirection: 'SELL', symbol: stock.symbol, quantity,
+              tradeDirection: 'SELL', symbol: stock!.symbol, quantity,
               fillPrice, totalValue, brokerage, pnl: realizedPnl,
               pnlPercent: position.entryPrice > 0 ? Math.round((realizedPnl / (position.entryPrice * quantity)) * 10000) / 100 : 0,
             }
@@ -218,12 +236,12 @@ export async function POST(request: NextRequest) {
             })
           } else {
             const newInvested = position.totalInvested - (position.entryPrice * quantity)
-            const newCurrent = remainingQty * stock.currentPrice
+            const newCurrent = remainingQty * stock!.currentPrice
             await tx.position.update({
               where: { id: position.id },
               data: {
                 quantity: remainingQty, totalInvested: newInvested,
-                currentValue: newCurrent, currentPrice: stock.currentPrice,
+                currentValue: newCurrent, currentPrice: stock!.currentPrice,
                 unrealizedPnl: Math.round((newCurrent - newInvested) * 100) / 100,
                 realizedPnl: { increment: realizedPnl },
               }
@@ -232,6 +250,9 @@ export async function POST(request: NextRequest) {
 
           return { order, trade, realizedPnl, updatedUser }
         })
+
+        cache.deleteByPrefix(`ubal:${userId}`)
+        if (auth.token) cache.delete(CacheKeys.auth(auth.token))
 
         return NextResponse.json({
           success: true,
@@ -247,38 +268,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid direction' }, { status: 400 })
     } // end EQUITY
 
-    // ─── FUTURES Segment ──────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════
+    // FUTURES Segment
+    // ═══════════════════════════════════════════════════════════════
     if (segment === 'FUTURES') {
-      // Find the futures contract by underlying symbol
       const lots = body.lots || 1
       const expiryDate = body.expiryDate ? new Date(body.expiryDate) : undefined
 
-      // Find the future contract in DB
-      const futureWhere: Record<string, unknown> = {
-        underlying: { equals: symbol, mode: 'insensitive' },
-        isActive: true,
-      }
-      if (expiryDate) {
-        futureWhere.expiryDate = expiryDate
+      // Try cache first
+      let future = cache.get<{ ltp: number; id: string; lotSize: number; marginPercent: number; expiryDate: Date } & Record<string, unknown>>(
+        CacheKeys.futurePrice(symbol)
+      ) as (typeof cache extends Map<string, infer V> ? V : never) | null
+
+      if (!future) {
+        const futureWhere: Record<string, unknown> = {
+          underlying: { equals: symbol, mode: 'insensitive' },
+          isActive: true,
+        }
+        if (expiryDate) futureWhere.expiryDate = expiryDate
+
+        future = await db.future.findFirst({
+          where: futureWhere,
+          orderBy: { expiryDate: 'asc' },
+        }) as (Record<string, unknown> & { ltp: number; id: string; lotSize: number; marginPercent: number; expiryDate: Date }) | null
+
+        if (future) {
+          cache.set(CacheKeys.futurePrice(symbol), future, CacheTTL.FUTURE_PRICE)
+        }
       }
 
-      const future = await db.future.findFirst({
-        where: futureWhere,
-        orderBy: { expiryDate: 'asc' },
-      })
-
-      // Get the index for lot size
       const indexData = await db.index.findFirst({
         where: { symbol: { equals: symbol, mode: 'insensitive' } },
       })
 
-      const lotSize = indexData?.lotSize || future?.lotSize || 50
-      const fillPrice = future ? future.ltp : (price || 0)
+      const lotSize = indexData?.lotSize || (future as Record<string, unknown>)?.lotSize as number || 50
+      const fillPrice = future ? (future as Record<string, unknown>).ltp as number : (price || 0)
       const totalQty = lots * lotSize
       const totalValue = Math.round(totalQty * fillPrice * 100) / 100
       const brokerage = calculateBrokerage(totalValue)
-      // Margin is typically 10-15% of contract value for futures
-      const marginPercent = future?.marginPercent || 12
+      const marginPercent = (future as Record<string, unknown>)?.marginPercent as number || 12
       const marginRequired = Math.round(totalValue * marginPercent / 100 * 100) / 100
 
       if (!future) {
@@ -294,7 +322,6 @@ export async function POST(request: NextRequest) {
         }
 
         const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
-          // Block margin from balance
           const updatedUser = await tx.user.update({
             where: { id: user.id },
             data: {
@@ -312,7 +339,7 @@ export async function POST(request: NextRequest) {
               segment: 'FUTURES',
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
               symbol,
-              instrumentId: future.id,
+              instrumentId: (future as Record<string, unknown>).id as string,
               quantity: totalQty,
               lotSize,
               lots,
@@ -321,7 +348,7 @@ export async function POST(request: NextRequest) {
               totalValue,
               brokerage,
               marginRequired,
-              expiryDate: future.expiryDate,
+              expiryDate: (future as Record<string, unknown>).expiryDate as Date,
               status: 'FILLED',
               filledAt: new Date(),
             }
@@ -335,22 +362,21 @@ export async function POST(request: NextRequest) {
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
               tradeDirection: 'BUY',
               symbol,
-              instrumentId: future.id,
+              instrumentId: (future as Record<string, unknown>).id as string,
               quantity: totalQty,
               fillPrice,
               totalValue,
               brokerage,
-              expiryDate: future.expiryDate,
+              expiryDate: (future as Record<string, unknown>).expiryDate as Date,
             }
           })
 
-          // Create or update position
           const existingPosition = await tx.position.findFirst({
             where: {
               userId: user.id, symbol, segment: 'FUTURES',
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
               tradeDirection: 'BUY', isOpen: true,
-              expiryDate: future.expiryDate,
+              expiryDate: (future as Record<string, unknown>).expiryDate as Date,
             }
           })
 
@@ -385,8 +411,8 @@ export async function POST(request: NextRequest) {
                 totalInvested: totalValue, currentValue,
                 unrealizedPnl: Math.round((currentValue - totalValue) * 100) / 100,
                 marginUsed: marginRequired,
-                instrumentId: future.id,
-                expiryDate: future.expiryDate,
+                instrumentId: (future as Record<string, unknown>).id as string,
+                expiryDate: (future as Record<string, unknown>).expiryDate as Date,
                 isOpen: true,
               }
             })
@@ -394,6 +420,9 @@ export async function POST(request: NextRequest) {
 
           return { order, trade, updatedUser }
         })
+
+        cache.deleteByPrefix(`ubal:${userId}`)
+        if (auth.token) cache.delete(CacheKeys.auth(auth.token))
 
         return NextResponse.json({
           success: true,
@@ -408,7 +437,6 @@ export async function POST(request: NextRequest) {
 
       // ─── SELL FUTURES ─────────────────────────────────────
       if (direction === 'SELL') {
-        // For SELL futures, we need margin too
         if (user.virtualBalance < marginRequired) {
           return NextResponse.json({
             error: `Insufficient margin for short position. Required: ₹${marginRequired.toLocaleString('en-IN')}, Available: ₹${user.virtualBalance.toLocaleString('en-IN')}`
@@ -416,7 +444,6 @@ export async function POST(request: NextRequest) {
         }
 
         const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
-          // Block margin from balance for short position
           const updatedUser = await tx.user.update({
             where: { id: user.id },
             data: {
@@ -434,7 +461,7 @@ export async function POST(request: NextRequest) {
               segment: 'FUTURES',
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
               symbol,
-              instrumentId: future.id,
+              instrumentId: (future as Record<string, unknown>).id as string,
               quantity: totalQty,
               lotSize,
               lots,
@@ -443,7 +470,7 @@ export async function POST(request: NextRequest) {
               totalValue,
               brokerage,
               marginRequired,
-              expiryDate: future.expiryDate,
+              expiryDate: (future as Record<string, unknown>).expiryDate as Date,
               status: 'FILLED',
               filledAt: new Date(),
             }
@@ -457,22 +484,21 @@ export async function POST(request: NextRequest) {
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
               tradeDirection: 'SELL',
               symbol,
-              instrumentId: future.id,
+              instrumentId: (future as Record<string, unknown>).id as string,
               quantity: totalQty,
               fillPrice,
               totalValue,
               brokerage,
-              expiryDate: future.expiryDate,
+              expiryDate: (future as Record<string, unknown>).expiryDate as Date,
             }
           })
 
-          // Check if there's an existing SELL position to add to
           const existingPosition = await tx.position.findFirst({
             where: {
               userId: user.id, symbol, segment: 'FUTURES',
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
               tradeDirection: 'SELL', isOpen: true,
-              expiryDate: future.expiryDate,
+              expiryDate: (future as Record<string, unknown>).expiryDate as Date,
             }
           })
 
@@ -507,8 +533,8 @@ export async function POST(request: NextRequest) {
                 totalInvested: totalValue, currentValue,
                 unrealizedPnl: Math.round((currentValue - totalValue) * 100) / 100,
                 marginUsed: marginRequired,
-                instrumentId: future.id,
-                expiryDate: future.expiryDate,
+                instrumentId: (future as Record<string, unknown>).id as string,
+                expiryDate: (future as Record<string, unknown>).expiryDate as Date,
                 isOpen: true,
               }
             })
@@ -516,6 +542,9 @@ export async function POST(request: NextRequest) {
 
           return { order, trade, updatedUser }
         })
+
+        cache.deleteByPrefix(`ubal:${userId}`)
+        if (auth.token) cache.delete(CacheKeys.auth(auth.token))
 
         return NextResponse.json({
           success: true,
@@ -531,10 +560,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid direction' }, { status: 400 })
     } // end FUTURES
 
-    // ─── OPTIONS Segment ──────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════
+    // OPTIONS Segment
+    // ═══════════════════════════════════════════════════════════════
     if (segment === 'OPTIONS') {
       const lots = body.lots || 1
-      const optionType = body.optionType // CE or PE
+      const optionType = body.optionType
       const strikePrice = body.strikePrice
 
       if (!optionType || !['CE', 'PE'].includes(optionType)) {
@@ -544,16 +575,26 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'strikePrice is required and must be positive' }, { status: 400 })
       }
 
-      // Find the option in DB
-      const option = await db.option.findFirst({
-        where: {
-          underlying: { equals: symbol, mode: 'insensitive' },
-          optionType: optionType as 'CE' | 'PE',
-          strikePrice,
-          isActive: true,
-        },
-        orderBy: { expiryDate: 'asc' },
-      })
+      // Try cache first
+      let option = cache.get<{ ltp: number; id: string; expiryDate: Date } & Record<string, unknown>>(
+        CacheKeys.optionPrice(symbol, optionType, strikePrice)
+      ) as (Record<string, unknown> & { ltp: number; id: string; expiryDate: Date }) | null
+
+      if (!option) {
+        option = await db.option.findFirst({
+          where: {
+            underlying: { equals: symbol, mode: 'insensitive' },
+            optionType: optionType as 'CE' | 'PE',
+            strikePrice,
+            isActive: true,
+          },
+          orderBy: { expiryDate: 'asc' },
+        }) as (Record<string, unknown> & { ltp: number; id: string; expiryDate: Date }) | null
+
+        if (option) {
+          cache.set(CacheKeys.optionPrice(symbol, optionType, strikePrice), option, CacheTTL.OPTION_PRICE)
+        }
+      }
 
       if (!option) {
         return NextResponse.json({
@@ -561,7 +602,6 @@ export async function POST(request: NextRequest) {
         }, { status: 404 })
       }
 
-      // Get the index for lot size
       const indexData = await db.index.findFirst({
         where: { symbol: { equals: symbol, mode: 'insensitive' } },
       })
@@ -574,7 +614,6 @@ export async function POST(request: NextRequest) {
 
       // ─── BUY OPTIONS ──────────────────────────────────────
       if (direction === 'BUY') {
-        // For options BUY: premium is paid upfront (like equity BUY)
         const requiredAmount = totalValue + brokerage
         if (user.virtualBalance < requiredAmount) {
           return NextResponse.json({
@@ -600,10 +639,10 @@ export async function POST(request: NextRequest) {
               segment: 'OPTIONS',
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
               symbol,
-              instrumentId: option.id,
+              instrumentId: option!.id,
               optionType: optionType as 'CE' | 'PE',
               strikePrice,
-              expiryDate: option.expiryDate,
+              expiryDate: option!.expiryDate,
               quantity: totalQty,
               lotSize,
               lots,
@@ -624,10 +663,10 @@ export async function POST(request: NextRequest) {
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
               tradeDirection: 'BUY',
               symbol,
-              instrumentId: option.id,
+              instrumentId: option!.id,
               optionType: optionType as 'CE' | 'PE',
               strikePrice,
-              expiryDate: option.expiryDate,
+              expiryDate: option!.expiryDate,
               quantity: totalQty,
               fillPrice,
               totalValue,
@@ -635,7 +674,6 @@ export async function POST(request: NextRequest) {
             }
           })
 
-          // Create or update position
           const existingPosition = await tx.position.findFirst({
             where: {
               userId: user.id, symbol, segment: 'OPTIONS',
@@ -643,7 +681,7 @@ export async function POST(request: NextRequest) {
               strikePrice,
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
               tradeDirection: 'BUY', isOpen: true,
-              expiryDate: option.expiryDate,
+              expiryDate: option!.expiryDate,
             }
           })
 
@@ -677,8 +715,8 @@ export async function POST(request: NextRequest) {
                 entryPrice: fillPrice, currentPrice: fillPrice,
                 totalInvested: totalValue, currentValue,
                 unrealizedPnl: Math.round((currentValue - totalValue) * 100) / 100,
-                instrumentId: option.id,
-                expiryDate: option.expiryDate,
+                instrumentId: option!.id,
+                expiryDate: option!.expiryDate,
                 isOpen: true,
               }
             })
@@ -686,6 +724,9 @@ export async function POST(request: NextRequest) {
 
           return { order, trade, updatedUser }
         })
+
+        cache.deleteByPrefix(`ubal:${userId}`)
+        if (auth.token) cache.delete(CacheKeys.auth(auth.token))
 
         return NextResponse.json({
           success: true,
@@ -699,7 +740,6 @@ export async function POST(request: NextRequest) {
 
       // ─── SELL OPTIONS ─────────────────────────────────────
       if (direction === 'SELL') {
-        // Check if user has an existing BUY position for this option
         const existingBuyPosition = await db.position.findFirst({
           where: {
             userId: user.id, symbol, segment: 'OPTIONS',
@@ -739,10 +779,10 @@ export async function POST(request: NextRequest) {
                 segment: 'OPTIONS',
                 productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
                 symbol,
-                instrumentId: option.id,
+                instrumentId: option!.id,
                 optionType: optionType as 'CE' | 'PE',
                 strikePrice,
-                expiryDate: option.expiryDate,
+                expiryDate: option!.expiryDate,
                 quantity: totalQty,
                 lotSize,
                 lots,
@@ -760,10 +800,10 @@ export async function POST(request: NextRequest) {
                 userId: user.id, orderId: order.id, segment: 'OPTIONS',
                 productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
                 tradeDirection: 'SELL', symbol,
-                instrumentId: option.id,
+                instrumentId: option!.id,
                 optionType: optionType as 'CE' | 'PE',
                 strikePrice,
-                expiryDate: option.expiryDate,
+                expiryDate: option!.expiryDate,
                 quantity: totalQty,
                 fillPrice, totalValue, brokerage, pnl: realizedPnl,
                 pnlPercent: existingBuyPosition.entryPrice > 0
@@ -801,6 +841,9 @@ export async function POST(request: NextRequest) {
             return { order, trade, realizedPnl, updatedUser }
           })
 
+          cache.deleteByPrefix(`ubal:${userId}`)
+          if (auth.token) cache.delete(CacheKeys.auth(auth.token))
+
           return NextResponse.json({
             success: true,
             message: `SELL ${lots} lots (${totalQty} qty) ${symbol} ${strikePrice} ${optionType} @ ₹${fillPrice}`,
@@ -813,8 +856,7 @@ export async function POST(request: NextRequest) {
         }
 
         // ─── SELL to open short position (no existing BUY) ──
-        // Short options require margin (like futures)
-        const marginPercent = 150 // 1.5x premium value for short options margin
+        const marginPercent = 150
         const marginRequired = Math.round(totalValue * marginPercent / 100 * 100) / 100
 
         if (user.virtualBalance < marginRequired) {
@@ -824,7 +866,6 @@ export async function POST(request: NextRequest) {
         }
 
         const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
-          // Block margin from balance and credit premium received
           const netDebit = marginRequired - totalValue + brokerage
           const updatedUser = await tx.user.update({
             where: { id: user.id },
@@ -844,10 +885,10 @@ export async function POST(request: NextRequest) {
               segment: 'OPTIONS',
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
               symbol,
-              instrumentId: option.id,
+              instrumentId: option!.id,
               optionType: optionType as 'CE' | 'PE',
               strikePrice,
-              expiryDate: option.expiryDate,
+              expiryDate: option!.expiryDate,
               quantity: totalQty,
               lotSize,
               lots,
@@ -869,10 +910,10 @@ export async function POST(request: NextRequest) {
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
               tradeDirection: 'SELL',
               symbol,
-              instrumentId: option.id,
+              instrumentId: option!.id,
               optionType: optionType as 'CE' | 'PE',
               strikePrice,
-              expiryDate: option.expiryDate,
+              expiryDate: option!.expiryDate,
               quantity: totalQty,
               fillPrice,
               totalValue,
@@ -880,7 +921,6 @@ export async function POST(request: NextRequest) {
             }
           })
 
-          // Check if there's an existing SELL position to add to
           const existingSellPosition = await tx.position.findFirst({
             where: {
               userId: user.id, symbol, segment: 'OPTIONS',
@@ -888,7 +928,7 @@ export async function POST(request: NextRequest) {
               strikePrice,
               productType: productType as 'INTRADAY' | 'DELIVERY' | 'CARRY_FORWARD',
               tradeDirection: 'SELL', isOpen: true,
-              expiryDate: option.expiryDate,
+              expiryDate: option!.expiryDate,
             }
           })
 
@@ -925,8 +965,8 @@ export async function POST(request: NextRequest) {
                 totalInvested: totalValue, currentValue,
                 unrealizedPnl: Math.round((currentValue - totalValue) * 100) / 100,
                 marginUsed: marginRequired,
-                instrumentId: option.id,
-                expiryDate: option.expiryDate,
+                instrumentId: option!.id,
+                expiryDate: option!.expiryDate,
                 isOpen: true,
               }
             })
@@ -934,6 +974,9 @@ export async function POST(request: NextRequest) {
 
           return { order, trade, updatedUser }
         })
+
+        cache.deleteByPrefix(`ubal:${userId}`)
+        if (auth.token) cache.delete(CacheKeys.auth(auth.token))
 
         return NextResponse.json({
           success: true,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { authenticateRequest, calculateBrokerage } from '@/lib/trade-auth'
+import { cache, CacheKeys, CacheTTL } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
@@ -19,13 +20,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Find the position
+    // ─── Find the position ──────────────────────────────────────
     const position = await db.position.findFirst({
-      where: {
-        id: positionId,
-        userId,
-        isOpen: true,
-      }
+      where: { id: positionId, userId, isOpen: true },
     })
 
     if (!position) {
@@ -35,57 +32,67 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get current price based on segment
+    // ─── Get current price (try cache first, then DB) ───────────
     let currentPrice = position.currentPrice
 
     if (position.segment === 'EQUITY') {
-      const stock = await db.stock.findFirst({
-        where: { symbol: { equals: position.symbol, mode: 'insensitive' }, isActive: true },
-        select: { currentPrice: true, symbol: true },
-      })
-      if (stock) {
-        currentPrice = stock.currentPrice
+      const cached = cache.get<{ currentPrice: number }>(CacheKeys.stockPrice(position.symbol))
+      if (cached) {
+        currentPrice = cached.currentPrice
+      } else {
+        const stock = await db.stock.findFirst({
+          where: { symbol: { equals: position.symbol, mode: 'insensitive' }, isActive: true },
+          select: { currentPrice: true, symbol: true },
+        })
+        if (stock) {
+          currentPrice = stock.currentPrice
+          cache.set(CacheKeys.stockPrice(stock.symbol), { currentPrice: stock.currentPrice }, CacheTTL.STOCK_PRICE)
+        }
       }
     } else if (position.segment === 'FUTURES') {
-      const future = await db.future.findFirst({
-        where: {
-          underlying: { equals: position.symbol, mode: 'insensitive' },
-          isActive: true,
-        },
-        orderBy: { expiryDate: 'asc' },
-        select: { ltp: true },
-      })
-      if (future) {
-        currentPrice = future.ltp
+      const cached = cache.get<{ ltp: number }>(CacheKeys.futurePrice(position.symbol))
+      if (cached) {
+        currentPrice = cached.ltp
+      } else {
+        const future = await db.future.findFirst({
+          where: { underlying: { equals: position.symbol, mode: 'insensitive' }, isActive: true },
+          orderBy: { expiryDate: 'asc' },
+          select: { ltp: true, underlying: true },
+        })
+        if (future) {
+          currentPrice = future.ltp
+          cache.set(CacheKeys.futurePrice(future.underlying), { ltp: future.ltp }, CacheTTL.FUTURE_PRICE)
+        }
       }
     } else if (position.segment === 'OPTIONS') {
-      const option = await db.option.findFirst({
-        where: {
-          underlying: { equals: position.symbol, mode: 'insensitive' },
-          optionType: position.optionType,
-          strikePrice: position.strikePrice,
-          isActive: true,
-        },
-        orderBy: { expiryDate: 'asc' },
-        select: { ltp: true },
-      })
-      if (option) {
-        currentPrice = option.ltp
+      const optCacheKey = CacheKeys.optionPrice(position.symbol, position.optionType || 'CE', position.strikePrice || 0)
+      const cached = cache.get<{ ltp: number }>(optCacheKey)
+      if (cached) {
+        currentPrice = cached.ltp
+      } else {
+        const option = await db.option.findFirst({
+          where: {
+            underlying: { equals: position.symbol, mode: 'insensitive' },
+            optionType: position.optionType,
+            strikePrice: position.strikePrice,
+            isActive: true,
+          },
+          orderBy: { expiryDate: 'asc' },
+          select: { ltp: true },
+        })
+        if (option) currentPrice = option.ltp
       }
     }
 
-    // Determine the closing direction (opposite of position direction)
+    // ─── Calculate P&L ──────────────────────────────────────────
     const closeDirection = position.tradeDirection === 'BUY' ? 'SELL' : 'BUY'
     const totalValue = Math.round(position.quantity * currentPrice * 100) / 100
     const brokerage = calculateBrokerage(totalValue)
 
-    // Calculate realized P&L
     let realizedPnl: number
     if (position.tradeDirection === 'BUY') {
-      // Long position: profit = (exit - entry) * qty - brokerage
       realizedPnl = (currentPrice - position.entryPrice) * position.quantity - brokerage
     } else {
-      // Short position: profit = (entry - exit) * qty - brokerage
       realizedPnl = (position.entryPrice - currentPrice) * position.quantity - brokerage
     }
     realizedPnl = Math.round(realizedPnl * 100) / 100
@@ -94,9 +101,8 @@ export async function POST(request: NextRequest) {
       ? Math.round((realizedPnl / position.totalInvested) * 10000) / 100
       : 0
 
-    // Execute the square-off in a transaction
+    // ─── Execute square-off in transaction ──────────────────────
     const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
-      // Create closing order
       const order = await tx.order.create({
         data: {
           userId,
@@ -122,7 +128,6 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // Create trade
       const trade = await tx.trade.create({
         data: {
           userId,
@@ -145,7 +150,6 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // Update position - close it
       await tx.position.update({
         where: { id: position.id },
         data: {
@@ -158,9 +162,8 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // Update user balance and P&L
+      // Update user balance
       if (position.tradeDirection === 'BUY') {
-        // Closing long position: add proceeds to balance
         const proceeds = totalValue - brokerage
         await tx.user.update({
           where: { id: userId },
@@ -169,10 +172,9 @@ export async function POST(request: NextRequest) {
             totalTrades: { increment: 1 },
             totalPnl: { increment: realizedPnl },
             marginUsed: { decrement: position.marginUsed },
-          }
+          },
         })
       } else {
-        // Closing short position: margin was blocked, return it +/- P&L
         const marginReturn = position.marginUsed + realizedPnl
         await tx.user.update({
           where: { id: userId },
@@ -181,11 +183,11 @@ export async function POST(request: NextRequest) {
             totalTrades: { increment: 1 },
             totalPnl: { increment: realizedPnl },
             marginUsed: { decrement: position.marginUsed },
-          }
+          },
         })
       }
 
-      // Get updated user
+      // Get updated user balance
       const updatedUser = await tx.user.findUnique({
         where: { id: userId },
         select: { virtualBalance: true, totalPnl: true, totalTrades: true },
@@ -193,6 +195,10 @@ export async function POST(request: NextRequest) {
 
       return { order, trade, updatedUser }
     })
+
+    // ─── Invalidate relevant caches ─────────────────────────────
+    cache.deleteByPrefix(`ubal:${userId}`)
+    if (auth.token) cache.delete(CacheKeys.auth(auth.token))
 
     return NextResponse.json({
       success: true,

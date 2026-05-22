@@ -53,6 +53,7 @@ model User {
   portfolios      Portfolio[]
   sessions        Session[]
 
+  @@index([email])
   @@unique([oauthProvider, oauthId])
   @@map("users")
 }
@@ -113,6 +114,7 @@ model Index {
 
   indexHistory    IndexHistory[]
 
+  @@index([symbol])
   @@map("indices")
 }
 
@@ -184,6 +186,8 @@ model Stock {
 
   stockHistory        StockHistory[]
 
+  @@index([symbol])
+  @@index([sector])
   @@map("stocks")
 }
 
@@ -350,6 +354,8 @@ model Order {
   user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   trade           Trade?
 
+  @@index([userId, status])
+  @@index([userId, placedAt])
   @@map("orders")
 }
 
@@ -425,6 +431,7 @@ model Trade {
   user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   order           Order?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
+  @@index([userId, executedAt])
   @@map("trades")
 }
 
@@ -471,6 +478,9 @@ model Position {
   // Relations
   user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, isOpen])
+  @@index([userId, segment, isOpen])
+  @@index([userId, symbol, isOpen])
   @@map("positions")
 }
 
@@ -500,6 +510,7 @@ model Portfolio {
 
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, date])
   @@unique([userId, date])
   @@map("portfolios")
 }

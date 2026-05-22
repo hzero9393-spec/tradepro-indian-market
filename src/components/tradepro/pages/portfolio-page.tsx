@@ -74,10 +74,11 @@ interface PortfolioData {
   totalTrades: number
   initialCapital: number
   openPositionsCount: number
+  positions?: PositionData[]
   segments?: {
-    equity: { count: number; invested: number; currentValue: number; unrealizedPnl: number }
-    futures: { count: number; invested: number; currentValue: number; unrealizedPnl: number; marginUsed: number }
-    options: { count: number; invested: number; currentValue: number; unrealizedPnl: number; marginUsed: number }
+    equity: { count: number; invested: number; currentValue: number; unrealizedPnl: number; positions?: PositionData[] }
+    futures: { count: number; invested: number; currentValue: number; unrealizedPnl: number; marginUsed: number; positions?: PositionData[] }
+    options: { count: number; invested: number; currentValue: number; unrealizedPnl: number; marginUsed: number; positions?: PositionData[] }
   }
 }
 
@@ -101,6 +102,7 @@ export default function PortfolioPage() {
   const [loading, setLoading] = useState(true)
   const [squaringOff, setSquaringOff] = useState<string | null>(null)
 
+  // ─── Single API call that returns BOTH portfolio + positions ──
   const fetchPortfolio = useCallback(async () => {
     if (!token) return
     try {
@@ -109,22 +111,22 @@ export default function PortfolioPage() {
       })
       if (res.ok) {
         const json = await res.json()
-        setPortfolio(json.data)
-      }
-    } catch {
-      // silent
-    }
-  }, [token])
-
-  const fetchPositions = useCallback(async () => {
-    if (!token) return
-    try {
-      const res = await fetch('/api/trade/positions', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
-        const json = await res.json()
-        setPositions(json.data || [])
+        const data = json.data as PortfolioData
+        setPortfolio(data)
+        // Extract positions from portfolio response (no separate API call needed!)
+        if (data.positions && data.positions.length > 0) {
+          setPositions(data.positions)
+        } else if (data.segments) {
+          // Fallback: extract from segments
+          const allPositions = [
+            ...(data.segments.equity.positions || []),
+            ...(data.segments.futures.positions || []),
+            ...(data.segments.options.positions || []),
+          ]
+          setPositions(allPositions)
+        } else {
+          setPositions([])
+        }
       }
     } catch {
       // silent
@@ -133,16 +135,16 @@ export default function PortfolioPage() {
 
   const loadData = useCallback(async () => {
     setLoading(true)
-    await Promise.all([fetchPortfolio(), fetchPositions()])
+    await fetchPortfolio()
     setLoading(false)
-  }, [fetchPortfolio, fetchPositions])
+  }, [fetchPortfolio])
 
   useEffect(() => {
     loadData()
-    // Auto-refresh every 10 seconds for live P&L
-    const interval = setInterval(loadData, 10000)
+    // Auto-refresh every 30 seconds (increased from 10s to reduce DB load)
+    const interval = setInterval(fetchPortfolio, 30000)
     return () => clearInterval(interval)
-  }, [loadData])
+  }, [loadData, fetchPortfolio])
 
   const handleSquareOff = async (positionId: string, symbol: string) => {
     if (!token) return
@@ -159,7 +161,10 @@ export default function PortfolioPage() {
       const data = await res.json()
       if (res.ok && data.success) {
         toast.success(`Squared off ${symbol}`)
-        await loadData()
+        // Optimistic update: remove the position from local state immediately
+        setPositions(prev => prev.filter(p => p.id !== positionId))
+        // Then refresh from server
+        fetchPortfolio()
       } else {
         toast.error(data.error || 'Failed to square off')
       }
@@ -243,7 +248,6 @@ export default function PortfolioPage() {
 
       {loading ? (
         <div className="space-y-6">
-          {/* Total Portfolio Value Skeleton */}
           <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
             <CardContent className="p-6">
               <Skeleton className="h-4 w-32 mb-3 bg-[#f0f0f5]" />
@@ -301,9 +305,7 @@ export default function PortfolioPage() {
                   </span>
                 </div>
 
-                {/* Breakdown Row */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Available Balance */}
                   <div className="bg-[#f8f9fb] rounded-xl p-4 border border-[#e5e7eb]/50">
                     <div className="flex items-center gap-2 mb-1.5">
                       <div className="size-7 rounded-lg bg-[#00D09C]/10 flex items-center justify-center">
@@ -315,8 +317,6 @@ export default function PortfolioPage() {
                       {formatINR(portfolio?.virtualBalance ?? 100000)}
                     </span>
                   </div>
-
-                  {/* Invested */}
                   <div className="bg-[#f8f9fb] rounded-xl p-4 border border-[#e5e7eb]/50">
                     <div className="flex items-center gap-2 mb-1.5">
                       <div className="size-7 rounded-lg bg-[#6b7280]/10 flex items-center justify-center">
@@ -328,8 +328,6 @@ export default function PortfolioPage() {
                       {formatINR(investedAmount)}
                     </span>
                   </div>
-
-                  {/* Current Value */}
                   <div className="bg-[#f8f9fb] rounded-xl p-4 border border-[#e5e7eb]/50">
                     <div className="flex items-center gap-2 mb-1.5">
                       <div className="size-7 rounded-lg bg-[#00d09c]/10 flex items-center justify-center">
@@ -348,14 +346,11 @@ export default function PortfolioPage() {
 
           {/* ── Summary Cards Row ─────────────────────────────────── */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Total P&L */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
               <Card className={`bg-white border border-[#e5e7eb] rounded-xl shadow-sm border-l-4 ${totalPnl >= 0 ? 'border-l-[#00d09c]' : 'border-l-[#eb5b3c]'}`}>
                 <CardContent className="p-5">
                   <div className="mb-2 flex items-start justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6b7280]">
-                      Total P&amp;L
-                    </p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6b7280]">Total P&amp;L</p>
                     <div className={`size-7 rounded-lg flex items-center justify-center ${totalPnl >= 0 ? 'bg-[#00d09c]/10' : 'bg-[#eb5b3c]/10'}`}>
                       {totalPnl >= 0 ? <TrendingUp className="size-3.5 text-[#00d09c]" /> : <TrendingDown className="size-3.5 text-[#eb5b3c]" />}
                     </div>
@@ -371,14 +366,11 @@ export default function PortfolioPage() {
               </Card>
             </motion.div>
 
-            {/* Unrealized P&L */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               <Card className={`bg-white border border-[#e5e7eb] rounded-xl shadow-sm border-l-4 ${unrealizedPnl >= 0 ? 'border-l-[#00d09c]' : 'border-l-[#eb5b3c]'}`}>
                 <CardContent className="p-5">
                   <div className="mb-2 flex items-start justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6b7280]">
-                      Unrealized P&amp;L
-                    </p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6b7280]">Unrealized P&amp;L</p>
                     <div className={`size-7 rounded-lg flex items-center justify-center ${unrealizedPnl >= 0 ? 'bg-[#00d09c]/10' : 'bg-[#eb5b3c]/10'}`}>
                       {unrealizedPnl >= 0 ? <TrendingUp className="size-3.5 text-[#00d09c]" /> : <TrendingDown className="size-3.5 text-[#eb5b3c]" />}
                     </div>
@@ -394,14 +386,11 @@ export default function PortfolioPage() {
               </Card>
             </motion.div>
 
-            {/* Realized P&L */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
               <Card className={`bg-white border border-[#e5e7eb] rounded-xl shadow-sm border-l-4 ${realizedPnl >= 0 ? 'border-l-[#00d09c]' : 'border-l-[#eb5b3c]'}`}>
                 <CardContent className="p-5">
                   <div className="mb-2 flex items-start justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6b7280]">
-                      Realized P&amp;L
-                    </p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6b7280]">Realized P&amp;L</p>
                     <div className={`size-7 rounded-lg flex items-center justify-center ${realizedPnl >= 0 ? 'bg-[#00d09c]/10' : 'bg-[#eb5b3c]/10'}`}>
                       <Wallet className={`size-3.5 ${realizedPnl >= 0 ? 'text-[#00d09c]' : 'text-[#eb5b3c]'}`} />
                     </div>
@@ -416,14 +405,11 @@ export default function PortfolioPage() {
               </Card>
             </motion.div>
 
-            {/* Open Positions */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
               <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm border-l-4 border-l-[#00D09C]">
                 <CardContent className="p-5">
                   <div className="mb-2 flex items-start justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6b7280]">
-                      Open Positions
-                    </p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6b7280]">Open Positions</p>
                     <div className="size-7 rounded-lg bg-[#00D09C]/10 flex items-center justify-center">
                       <Briefcase className="size-3.5 text-[#00D09C]" />
                     </div>
@@ -447,9 +433,7 @@ export default function PortfolioPage() {
           >
             <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm overflow-hidden">
               <div className="flex items-center justify-between border-b border-[#e5e7eb] px-6 py-4">
-                <h4 className="text-lg font-semibold text-[#1a1a1a]">
-                  Holdings
-                </h4>
+                <h4 className="text-lg font-semibold text-[#1a1a1a]">Holdings</h4>
                 <Badge variant="secondary" className="bg-[#00D09C]/10 text-[#00D09C] border-0 text-xs font-semibold">
                   {positions.length} Active
                 </Badge>
@@ -461,9 +445,7 @@ export default function PortfolioPage() {
                     <Briefcase className="size-7 text-[#6b7280]/40" />
                   </div>
                   <p className="text-[#1a1a1a] font-semibold text-sm">Your portfolio is empty</p>
-                  <p className="text-[#6b7280] text-xs mt-1">
-                    Start trading to see your holdings here
-                  </p>
+                  <p className="text-[#6b7280] text-xs mt-1">Start trading to see your holdings here</p>
                   <Button
                     size="sm"
                     className="mt-4 gap-1.5 bg-[#00D09C] hover:bg-[#00b88a] text-white font-semibold rounded-lg"
@@ -478,33 +460,15 @@ export default function PortfolioPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent border-b border-[#e5e7eb]">
-                        <TableHead className="text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">
-                          Symbol
-                        </TableHead>
-                        <TableHead className="text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">
-                          Direction
-                        </TableHead>
-                        <TableHead className="text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">
-                          Segment
-                        </TableHead>
-                        <TableHead className="text-right text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">
-                          Qty
-                        </TableHead>
-                        <TableHead className="text-right text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">
-                          Avg Price
-                        </TableHead>
-                        <TableHead className="text-right text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">
-                          LTP
-                        </TableHead>
-                        <TableHead className="text-right text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">
-                          P&amp;L
-                        </TableHead>
-                        <TableHead className="text-right text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">
-                          Current Value
-                        </TableHead>
-                        <TableHead className="text-center text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">
-                          Action
-                        </TableHead>
+                        <TableHead className="text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">Symbol</TableHead>
+                        <TableHead className="text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">Direction</TableHead>
+                        <TableHead className="text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">Segment</TableHead>
+                        <TableHead className="text-right text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">Qty</TableHead>
+                        <TableHead className="text-right text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">Avg Price</TableHead>
+                        <TableHead className="text-right text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">LTP</TableHead>
+                        <TableHead className="text-right text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">P&amp;L</TableHead>
+                        <TableHead className="text-right text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">Current Value</TableHead>
+                        <TableHead className="text-center text-xs font-semibold text-[#6b7280] tracking-wider uppercase bg-[#f8f9fb]">Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-[#e5e7eb]">
@@ -515,10 +479,7 @@ export default function PortfolioPage() {
                         const isPositive = pnlValue >= 0
 
                         return (
-                          <TableRow
-                            key={pos.id}
-                            className="hover:bg-[#f8f9fb] transition-colors"
-                          >
+                          <TableRow key={pos.id} className="hover:bg-[#f8f9fb] transition-colors">
                             <TableCell>
                               <div className="flex flex-col">
                                 <span className="text-sm font-bold text-[#00D09C]">{pos.symbol}</span>
@@ -530,24 +491,17 @@ export default function PortfolioPage() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge
-                                variant="secondary"
-                                className={`text-[10px] font-semibold border-0 gap-0.5 ${
-                                  isLong ? 'bg-[#00d09c]/10 text-[#00d09c]' : 'bg-[#eb5b3c]/10 text-[#eb5b3c]'
-                                }`}
-                              >
+                              <Badge variant="secondary" className={`text-[10px] font-semibold border-0 gap-0.5 ${
+                                isLong ? 'bg-[#00d09c]/10 text-[#00d09c]' : 'bg-[#eb5b3c]/10 text-[#eb5b3c]'
+                              }`}>
                                 {isLong ? <ArrowUpRight className="size-2.5" /> : <ArrowDownRight className="size-2.5" />}
                                 {isLong ? 'Long' : 'Short'}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-xs text-[#6b7280]">{pos.segment}</TableCell>
                             <TableCell className="text-right font-mono-data text-sm text-[#1a1a1a]">{pos.quantity}</TableCell>
-                            <TableCell className="text-right font-mono-data text-sm text-[#6b7280]">
-                              {formatINR(pos.entryPrice)}
-                            </TableCell>
-                            <TableCell className="text-right font-mono-data text-sm text-[#1a1a1a]">
-                              {formatINR(pos.currentPrice)}
-                            </TableCell>
+                            <TableCell className="text-right font-mono-data text-sm text-[#6b7280]">{formatINR(pos.entryPrice)}</TableCell>
+                            <TableCell className="text-right font-mono-data text-sm text-[#1a1a1a]">{formatINR(pos.currentPrice)}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex flex-col items-end">
                                 <span className={`font-mono-data text-sm font-semibold ${isPositive ? 'text-[#00d09c]' : 'text-[#eb5b3c]'}`}>
@@ -604,17 +558,11 @@ export default function PortfolioPage() {
                     ? ((segment.pnl / segment.invested) * 100).toFixed(2)
                     : '0.00'
                   return (
-                    <Card
-                      key={segment.name}
-                      className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm hover:shadow-md hover:border-[#00D09C]/20 transition-all duration-300"
-                    >
+                    <Card key={segment.name} className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm hover:shadow-md hover:border-[#00D09C]/20 transition-all duration-300">
                       <CardContent className="p-5">
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-2.5">
-                            <div
-                              className="size-9 rounded-lg flex items-center justify-center"
-                              style={{ backgroundColor: `${segment.color}12` }}
-                            >
+                            <div className="size-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${segment.color}12` }}>
                               <Icon className="size-4" style={{ color: segment.color }} />
                             </div>
                             <div>
@@ -624,30 +572,20 @@ export default function PortfolioPage() {
                               </span>
                             </div>
                           </div>
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] font-semibold border-0 ${
-                              isProfit
-                                ? 'bg-[#00d09c]/10 text-[#00d09c]'
-                                : 'bg-[#eb5b3c]/10 text-[#eb5b3c]'
-                            }`}
-                          >
+                          <Badge variant="outline" className={`text-[10px] font-semibold border-0 ${
+                            isProfit ? 'bg-[#00d09c]/10 text-[#00d09c]' : 'bg-[#eb5b3c]/10 text-[#eb5b3c]'
+                          }`}>
                             {isProfit ? '+' : ''}{pnlPercent}%
                           </Badge>
                         </div>
-
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-[#6b7280]">Current Value</span>
-                            <span className="font-mono-data text-sm font-semibold text-[#1a1a1a]">
-                              {formatINRWhole(segment.value)}
-                            </span>
+                            <span className="font-mono-data text-sm font-semibold text-[#1a1a1a]">{formatINRWhole(segment.value)}</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-[#6b7280]">Invested</span>
-                            <span className="font-mono-data text-sm text-[#6b7280]">
-                              {formatINRWhole(segment.invested)}
-                            </span>
+                            <span className="font-mono-data text-sm text-[#6b7280]">{formatINRWhole(segment.invested)}</span>
                           </div>
                           <div className="h-px bg-[#e5e7eb]" />
                           <div className="flex items-center justify-between">
@@ -667,7 +605,6 @@ export default function PortfolioPage() {
 
           {/* ── Bottom Section: Allocation + Account Details ──── */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {/* Asset Allocation */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -678,46 +615,26 @@ export default function PortfolioPage() {
                 <CardContent className="p-6">
                   <div className="flex items-center gap-2 mb-6">
                     <PieChartIcon className="size-5 text-[#00D09C]" />
-                    <h4 className="text-lg font-semibold text-[#1a1a1a]">
-                      Asset Allocation
-                    </h4>
+                    <h4 className="text-lg font-semibold text-[#1a1a1a]">Asset Allocation</h4>
                   </div>
                   {allocationData.length > 0 && allocationTotal > 0 ? (
                     <div className="flex flex-col items-center gap-8 sm:flex-row">
-                      {/* Donut Chart */}
                       <div className="relative h-48 w-48 shrink-0">
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
-                            <Pie
-                              data={allocationData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={60}
-                              outerRadius={80}
-                              paddingAngle={3}
-                              dataKey="value"
-                              stroke="none"
-                            >
+                            <Pie data={allocationData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={3} dataKey="value" stroke="none">
                               {allocationData.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={entry.color} />
                               ))}
                             </Pie>
                             <Tooltip
                               formatter={(value: number) => `₹${value.toLocaleString('en-IN')}`}
-                              contentStyle={{
-                                backgroundColor: '#ffffff',
-                                border: '1px solid #e5e7eb',
-                                borderRadius: '10px',
-                                fontSize: '12px',
-                                color: '#1a1a1a',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                              }}
+                              contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '10px', fontSize: '12px', color: '#1a1a1a', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
                               itemStyle={{ color: '#1a1a1a' }}
                               labelStyle={{ color: '#6b7280' }}
                             />
                           </PieChart>
                         </ResponsiveContainer>
-                        {/* Center Label */}
                         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                           <span className="text-xl font-bold leading-none text-[#1a1a1a]">
                             {investedAmount > 0 && totalValue > 0 ? Math.round((investedAmount / totalValue) * 100) : 0}%
@@ -725,8 +642,6 @@ export default function PortfolioPage() {
                           <span className="text-[10px] uppercase text-[#6b7280]">Invested</span>
                         </div>
                       </div>
-
-                      {/* Legend */}
                       <div className="flex w-full flex-col gap-4">
                         {allocationData.map((item) => {
                           const percent = ((item.value / allocationTotal) * 100).toFixed(1)
@@ -737,29 +652,17 @@ export default function PortfolioPage() {
                                 <span className="text-xs font-semibold text-[#1a1a1a]">{item.name}</span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className="font-mono-data text-sm text-[#1a1a1a]">
-                                  ₹{item.value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                                </span>
-                                <Badge variant="outline" className="border-[#e5e7eb] text-[10px] text-[#6b7280]">
-                                  {percent}%
-                                </Badge>
+                                <span className="font-mono-data text-sm text-[#1a1a1a]">₹{item.value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                                <Badge variant="outline" className="border-[#e5e7eb] text-[10px] text-[#6b7280]">{percent}%</Badge>
                               </div>
                             </div>
                           )
                         })}
-
-                        {/* Allocation bar */}
                         <div className="mt-2">
                           <div className="flex h-3 w-full overflow-hidden rounded-full bg-[#f0f0f5]">
                             {allocationData.map((item) => {
                               const width = (item.value / allocationTotal) * 100
-                              return (
-                                <div
-                                  key={item.name}
-                                  className="h-full transition-all duration-700"
-                                  style={{ width: `${width}%`, backgroundColor: item.color }}
-                                />
-                              )
+                              return <div key={item.name} className="h-full transition-all duration-700" style={{ width: `${width}%`, backgroundColor: item.color }} />
                             })}
                           </div>
                         </div>
@@ -778,7 +681,6 @@ export default function PortfolioPage() {
               </Card>
             </motion.div>
 
-            {/* Account Details */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -786,52 +688,23 @@ export default function PortfolioPage() {
             >
               <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm h-full border-l-4 border-l-[#00D09C]">
                 <CardContent className="p-6">
-                  <h4 className="mb-5 text-[11px] font-semibold uppercase tracking-widest text-[#6b7280]">
-                    Account Details
-                  </h4>
+                  <h4 className="mb-5 text-[11px] font-semibold uppercase tracking-widest text-[#6b7280]">Account Details</h4>
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium text-[#6b7280]">Available Balance</span>
-                      <span className="font-mono-data text-sm font-semibold text-[#1a1a1a]">
-                        {formatINR(portfolio?.virtualBalance ?? 100000)}
-                      </span>
+                      <span className="font-mono-data text-sm font-semibold text-[#1a1a1a]">{formatINR(portfolio?.virtualBalance ?? 100000)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium text-[#6b7280]">Margin Used</span>
-                      <span className="font-mono-data text-sm font-semibold text-[#1a1a1a]">
-                        {formatINR(portfolio?.marginUsed ?? 0)}
-                      </span>
+                      <span className="font-mono-data text-sm font-semibold text-[#1a1a1a]">{formatINR(portfolio?.marginUsed ?? 0)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium text-[#6b7280]">Available Margin</span>
-                      <span className="font-mono-data text-sm font-semibold text-[#1a1a1a]">
-                        {formatINR(portfolio?.availableMargin ?? 100000)}
-                      </span>
+                      <span className="font-mono-data text-sm font-semibold text-[#1a1a1a]">{formatINR(portfolio?.availableMargin ?? 100000)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium text-[#6b7280]">Total Trades</span>
-                      <span className="font-mono-data text-sm font-semibold text-[#1a1a1a]">
-                        {portfolio?.totalTrades ?? 0}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-[#6b7280]">Open Positions</span>
-                      <span className="font-mono-data text-sm font-semibold text-[#1a1a1a]">
-                        {portfolio?.openPositionsCount ?? 0}
-                      </span>
-                    </div>
-                    <div className="h-px bg-[#e5e7eb] my-1" />
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-[#6b7280]">Initial Capital</span>
-                      <span className="font-mono-data text-sm font-semibold text-[#6b7280]">
-                        ₹1,00,000
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-[#6b7280]">Overall P&amp;L</span>
-                      <span className={`font-mono-data text-sm font-bold ${(portfolio?.totalPnl ?? 0) >= 0 ? 'text-[#00d09c]' : 'text-[#eb5b3c]'}`}>
-                        {(portfolio?.totalPnl ?? 0) >= 0 ? '+' : '-'}{formatINR(Math.abs(portfolio?.totalPnl ?? 0))}
-                      </span>
+                      <span className="font-mono-data text-sm font-semibold text-[#1a1a1a]">{portfolio?.totalTrades ?? 0}</span>
                     </div>
                   </div>
                 </CardContent>

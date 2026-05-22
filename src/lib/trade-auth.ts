@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { verifyToken, getTokenFromHeaders } from '@/lib/auth'
+import { cache, CacheKeys, CacheTTL } from '@/lib/cache'
 
 export interface AuthResult {
   userId: string
@@ -8,8 +9,14 @@ export interface AuthResult {
   error?: NextResponse
 }
 
+interface CachedAuth {
+  userId: string
+  isActive: boolean
+}
+
 /**
  * Verifies the auth token from request headers and checks session validity.
+ * Uses in-memory caching to avoid repeated DB queries.
  * Returns userId on success, or an error NextResponse on failure.
  */
 export async function authenticateRequest(request: NextRequest): Promise<AuthResult> {
@@ -25,6 +32,13 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthRes
     }
   }
 
+  // ─── Check auth cache first ──────────────────────────────────
+  const cached = cache.get<CachedAuth>(CacheKeys.auth(token))
+  if (cached && cached.isActive) {
+    return { userId: cached.userId, token }
+  }
+
+  // ─── Verify JWT ──────────────────────────────────────────────
   const payload = verifyToken(token)
   if (!payload) {
     return {
@@ -36,9 +50,11 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthRes
     }
   }
 
-  // Check session exists and is not expired
+  // ─── Check session exists and is not expired ─────────────────
   const session = await db.session.findUnique({ where: { token } })
   if (!session || session.expiresAt < new Date()) {
+    // Invalidate cache for this token
+    cache.delete(CacheKeys.auth(token))
     return {
       userId: '',
       error: NextResponse.json(
@@ -48,13 +64,14 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthRes
     }
   }
 
-  // Verify user exists and is active
+  // ─── Verify user exists and is active ────────────────────────
   const user = await db.user.findUnique({
     where: { id: payload.userId },
     select: { id: true, isActive: true },
   })
 
   if (!user || !user.isActive) {
+    cache.delete(CacheKeys.auth(token))
     return {
       userId: '',
       error: NextResponse.json(
@@ -63,6 +80,9 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthRes
       ),
     }
   }
+
+  // ─── Cache the auth result ───────────────────────────────────
+  cache.set(CacheKeys.auth(token), { userId: payload.userId, isActive: true }, CacheTTL.AUTH)
 
   return { userId: payload.userId, token }
 }

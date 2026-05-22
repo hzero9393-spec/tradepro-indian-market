@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { authenticateRequest } from '@/lib/trade-auth'
+import { cache, CacheKeys, CacheTTL } from '@/lib/cache'
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,88 +10,131 @@ export async function GET(request: NextRequest) {
 
     const userId = auth.userId
 
-    // Fetch all open positions for the user
+    // ─── Fetch all open positions in ONE query ──────────────────
     const positions = await db.position.findMany({
-      where: {
-        userId,
-        isOpen: true,
-      },
+      where: { userId, isOpen: true },
       orderBy: { createdAt: 'desc' },
     })
 
-    // Enrich positions with current prices and unrealized P&L
-    const enrichedPositions = await Promise.all(
-      positions.map(async (position) => {
-        let currentPrice = position.currentPrice
+    if (positions.length === 0) {
+      return NextResponse.json({ success: true, data: [], count: 0 })
+    }
 
-        if (position.segment === 'EQUITY') {
-          const stock = await db.stock.findFirst({
-            where: { symbol: { equals: position.symbol, mode: 'insensitive' }, isActive: true },
-            select: { currentPrice: true, change: true, changePercent: true, name: true },
-          })
-          if (stock) {
-            currentPrice = stock.currentPrice
-          }
-        } else if (position.segment === 'FUTURES') {
-          const future = await db.future.findFirst({
-            where: {
-              underlying: { equals: position.symbol, mode: 'insensitive' },
-              isActive: true,
-            },
-            orderBy: { expiryDate: 'asc' },
-            select: { ltp: true, change: true, changePercent: true },
-          })
-          if (future) {
-            currentPrice = future.ltp
-          }
-        } else if (position.segment === 'OPTIONS') {
-          const option = await db.option.findFirst({
-            where: {
-              underlying: { equals: position.symbol, mode: 'insensitive' },
-              optionType: position.optionType,
-              strikePrice: position.strikePrice,
-              isActive: true,
-            },
-            orderBy: { expiryDate: 'asc' },
-            select: { ltp: true, change: true, changePercent: true },
-          })
-          if (option) {
-            currentPrice = option.ltp
-          }
-        }
+    // ─── Batch: Collect all unique symbols for price lookup ─────
+    const equitySymbols = new Set<string>()
+    const futureSymbols = new Set<string>()
+    const optionKeys: { underlying: string; optionType: string; strikePrice: number }[] = []
 
-        // Calculate unrealized P&L based on direction
-        let unrealizedPnl: number
-        if (position.tradeDirection === 'BUY') {
-          unrealizedPnl = (currentPrice - position.entryPrice) * position.quantity
-        } else {
-          // Short position: profit when price drops
-          unrealizedPnl = (position.entryPrice - currentPrice) * position.quantity
-        }
-
-        const currentValue = position.quantity * currentPrice
-
-        // Update the position in the database with latest prices
-        await db.position.update({
-          where: { id: position.id },
-          data: {
-            currentPrice,
-            currentValue,
-            unrealizedPnl: Math.round(unrealizedPnl * 100) / 100,
-          }
+    for (const pos of positions) {
+      if (pos.segment === 'EQUITY') {
+        equitySymbols.add(pos.symbol.toUpperCase())
+      } else if (pos.segment === 'FUTURES') {
+        futureSymbols.add(pos.symbol.toUpperCase())
+      } else if (pos.segment === 'OPTIONS' && pos.optionType && pos.strikePrice) {
+        optionKeys.push({
+          underlying: pos.symbol.toUpperCase(),
+          optionType: pos.optionType,
+          strikePrice: pos.strikePrice,
         })
+      }
+    }
 
-        return {
-          ...position,
-          currentPrice,
-          currentValue,
-          unrealizedPnl: Math.round(unrealizedPnl * 100) / 100,
-          unrealizedPnlPercent: position.entryPrice > 0
-            ? Math.round((unrealizedPnl / position.totalInvested) * 10000) / 100
-            : 0,
-        }
-      })
+    // ─── Batch price lookups: 3 parallel queries instead of N ───
+    const [stockPrices, futurePrices, optionPrices] = await Promise.all([
+      // All equity prices in ONE query
+      equitySymbols.size > 0
+        ? db.stock.findMany({
+            where: {
+              symbol: { in: Array.from(equitySymbols) },
+              isActive: true,
+            },
+            select: { symbol: true, currentPrice: true, change: true, changePercent: true, name: true },
+          })
+        : Promise.resolve([]),
+      // All future prices in ONE query
+      futureSymbols.size > 0
+        ? db.future.findMany({
+            where: {
+              underlying: { in: Array.from(futureSymbols) },
+              isActive: true,
+            },
+            orderBy: { expiryDate: 'asc' },
+            select: { underlying: true, ltp: true, change: true, changePercent: true },
+          })
+        : Promise.resolve([]),
+      // All option prices in ONE query (with composite where)
+      optionKeys.length > 0
+        ? db.option.findMany({
+            where: {
+              OR: optionKeys.map(ok => ({
+                underlying: ok.underlying,
+                optionType: ok.optionType,
+                strikePrice: ok.strikePrice,
+                isActive: true,
+              })),
+            },
+            orderBy: { expiryDate: 'asc' },
+            select: { underlying: true, optionType: true, strikePrice: true, ltp: true, change: true, changePercent: true },
+          })
+        : Promise.resolve([]),
+    ])
+
+    // ─── Build lookup maps for O(1) price access ───────────────
+    const stockPriceMap = new Map(
+      stockPrices.map(s => [s.symbol.toUpperCase(), s])
     )
+    const futurePriceMap = new Map(
+      futurePrices.map(f => [f.underlying.toUpperCase(), f])
+    )
+    // For options, key = "UNDERLYING:TYPE:STRIKE"
+    const optionPriceMap = new Map(
+      optionPrices.map(o => [`${o.underlying.toUpperCase()}:${o.optionType}:${o.strikePrice}`, o])
+    )
+
+    // ─── Enrich positions with prices (no DB writes!) ───────────
+    const enrichedPositions = positions.map(position => {
+      let currentPrice = position.currentPrice
+
+      if (position.segment === 'EQUITY') {
+        const stockData = stockPriceMap.get(position.symbol.toUpperCase())
+        if (stockData) currentPrice = stockData.currentPrice
+      } else if (position.segment === 'FUTURES') {
+        const futureData = futurePriceMap.get(position.symbol.toUpperCase())
+        if (futureData) currentPrice = futureData.ltp
+      } else if (position.segment === 'OPTIONS' && position.optionType && position.strikePrice) {
+        const optKey = `${position.symbol.toUpperCase()}:${position.optionType}:${position.strikePrice}`
+        const optionData = optionPriceMap.get(optKey)
+        if (optionData) currentPrice = optionData.ltp
+      }
+
+      // Calculate unrealized P&L based on direction
+      let unrealizedPnl: number
+      if (position.tradeDirection === 'BUY') {
+        unrealizedPnl = (currentPrice - position.entryPrice) * position.quantity
+      } else {
+        unrealizedPnl = (position.entryPrice - currentPrice) * position.quantity
+      }
+
+      const currentValue = position.quantity * currentPrice
+
+      return {
+        ...position,
+        currentPrice,
+        currentValue,
+        unrealizedPnl: Math.round(unrealizedPnl * 100) / 100,
+        unrealizedPnlPercent: position.entryPrice > 0
+          ? Math.round((unrealizedPnl / position.totalInvested) * 10000) / 100
+          : 0,
+      }
+    })
+
+    // ─── Cache prices for other API calls ───────────────────────
+    for (const s of stockPrices) {
+      cache.set(CacheKeys.stockPrice(s.symbol), s, CacheTTL.STOCK_PRICE)
+    }
+    for (const f of futurePrices) {
+      cache.set(CacheKeys.futurePrice(f.underlying), f, CacheTTL.FUTURE_PRICE)
+    }
 
     return NextResponse.json({
       success: true,
