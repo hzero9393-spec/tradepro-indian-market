@@ -121,3 +121,41 @@ Stage Summary:
 - Trade panel appears as bottom sheet overlay when "Buy Now" is clicked
 - API routes support real-time Finance API data with DB/mock fallback
 - All navigation flows updated: Trading Page stocks → Stock Overview, Dashboard positions → Stock Overview
+
+---
+Task ID: 5
+Agent: Main Agent
+Task: Set up Dhan HQ API integration for stock overview and F&O data
+
+Work Log:
+- Created `/src/lib/dhan-api.ts` - Comprehensive Dhan HQ API integration module with:
+  - Type definitions for DhanQuote, DhanOHLC, DhanOptionChainItem, DhanOptionChain, DhanFutureContract, DhanFnoData, DhanHistoricalCandle, StockOverviewData, StockFnoData
+  - Security ID mapping for NSE_FO and NSE_EQ segments (50+ stocks mapped)
+  - Dhan API functions: getDhanQuotes, getDhanStockQuote, getDhanOHLC, getDhanOptionChain, getDhanHistoricalData, getDhanExpiries
+  - Finance API (Yahoo) fallback functions: getFinanceQuote, getFinanceHistoricalData
+  - Combined data fetchers: fetchStockOverviewData (Dhan → Yahoo → DB), fetchStockFnoData (Dhan → DB)
+  - Auto-detects DHAN_ACCESS_TOKEN env var for real data
+- Created `/src/app/api/stocks/fno/[symbol]/route.ts` - F&O data API route using fetchStockFnoData
+- Created `/src/app/api/stocks/option-chain/[symbol]/route.ts` - Option chain API route with Dhan + DB fallback
+- Updated `/src/app/api/stocks/detail/[symbol]/route.ts` - Now uses fetchStockOverviewData for comprehensive data (Dhan → Yahoo → DB cascade)
+- Updated `/src/app/api/stocks/chart/[symbol]/route.ts` - Now tries Dhan historical data first, then Yahoo, then mock
+- Completely rewrote `src/components/tradepro/pages/stock-overview-page.tsx` (1783 lines) with:
+  - **Overview Tab**: Chart card, Performance card (Today's Range + 52W Range + 6 metrics: Open, Prev Close, Volume, VWAP, Avg Price, Traded Value), Circuit Limits card, Fundamentals section, About section (with ISIN, Strike Interval), Similar Stocks horizontal scroll, Mobile Buy button
+  - **F&O Tab** (NEW): Dhan API connection banner, F&O Summary card (PCR with Bullish/Bearish/Neutral, Max Pain with % away, IV Percentile, Nearest Expiry with dropdown), Futures Contracts table, Option Chain Quick View (±5 strikes from ATM, ITM/OTM color coding, ATM highlight), Buy/Sell F&O buttons
+  - **Technicals Tab**: Technical indicators, Support & Resistance levels, Signal Summary
+  - **News Tab**: Placeholder
+  - **Trade Panel**: Segment selector (EQUITY/FUTURES/OPTIONS), Buy/Sell toggle, Order Type, Product Type, Quantity with lot awareness
+  - Data source badges: LIVE (green) for Dhan, DELAYED (yellow) for Yahoo, DB (gray) for database
+  - Auto-refresh: stock detail every 30s, F&O data every 30s when F&O tab active
+- Lint passes with zero errors
+- Vercel deployed to production: https://tradepro-indian-market.vercel.app
+
+Stage Summary:
+- Full Dhan HQ API integration infrastructure created (just need DHAN_ACCESS_TOKEN env var to enable)
+- Stock Overview page now comprehensive with 4 tabs: Overview, F&O, Technicals, News
+- F&O tab shows PCR, Max Pain, IV Percentile, Futures Contracts table, Option Chain Quick View
+- Option Chain Quick View shows ±5 strikes from ATM with ITM color coding
+- Data flows: Dhan API → Yahoo Finance → Database (3-tier fallback)
+- F&O data API route for individual stocks created
+- Option chain API route for individual stocks created
+- All API routes updated to use the new Dhan integration module

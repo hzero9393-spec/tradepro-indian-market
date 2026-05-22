@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isDhanConfigured, getSecurityId, getDhanHistoricalData, getFinanceHistoricalData } from '@/lib/dhan-api'
 
-const GATEWAY_URL = 'https://internal-api.z.ai'
-const API_PREFIX = '/external/finance'
-
-function getYahooSymbol(symbol: string): string {
-  return `${symbol}.NS`
-}
-
-const INTERVAL_MAP: Record<string, string> = {
-  '1D': '5m',
-  '1W': '30m',
-  '1M': '1d',
-  '3M': '1d',
-  '6M': '1wk',
-  '1Y': '1wk',
-  '5Y': '1mo',
+const INTERVAL_MAP: Record<string, { yahoo: string; dhan: string }> = {
+  '1D': { yahoo: '5m', dhan: '1' },
+  '1W': { yahoo: '30m', dhan: '5' },
+  '1M': { yahoo: '1d', dhan: 'DAY' },
+  '3M': { yahoo: '1d', dhan: 'DAY' },
+  '6M': { yahoo: '1wk', dhan: 'WEEK' },
+  '1Y': { yahoo: '1wk', dhan: 'WEEK' },
+  '5Y': { yahoo: '1mo', dhan: 'MONTH' },
 }
 
 const LIMIT_MAP: Record<string, number> = {
@@ -77,33 +71,51 @@ export async function GET(
   try {
     const { symbol } = await params
     const symbolUpper = symbol.toUpperCase()
-    const yahooSymbol = getYahooSymbol(symbolUpper)
 
     const { searchParams } = new URL(request.url)
     const range = searchParams.get('range') || '1M'
-    const interval = INTERVAL_MAP[range] || '1d'
-    const limit = LIMIT_MAP[range] || 30
+    const basePrice = searchParams.get('basePrice') ? parseFloat(searchParams.get('basePrice')!) : 1500
 
-    try {
-      // Try to fetch real chart data from Finance API
-      const chartRes = await fetch(
-        `${GATEWAY_URL}${API_PREFIX}/v2/markets/stock/history?symbol=${encodeURIComponent(yahooSymbol)}&interval=${interval}&limit=${limit}`,
-        { headers: { 'X-Z-AI-From': 'Z' }, next: { revalidate: 120 } }
-      )
+    // 1. Try Dhan API for historical data
+    if (isDhanConfigured()) {
+      const securityId = getSecurityId(symbolUpper, 'NSE_EQ')
+      const foId = getSecurityId(symbolUpper, 'NSE_FO')
+      const id = securityId || foId
+      const segment = securityId ? 'NSE_EQ' : 'NSE_FO'
 
-      if (chartRes.ok) {
-        const chartData = await chartRes.json()
-        const body = chartData?.body
+      if (id) {
+        const intervals = INTERVAL_MAP[range]
+        const now = new Date()
+        const from = new Date(now)
 
-        if (body && Array.isArray(body) && body.length > 0) {
-          const parsed = body.map((candle: Record<string, unknown>) => ({
-            date: candle.date || candle.timestamp || '',
-            open: parseFloat(String(candle.open || '0')),
-            high: parseFloat(String(candle.high || '0')),
-            low: parseFloat(String(candle.low || '0')),
-            close: parseFloat(String(candle.close || '0')),
-            volume: parseInt(String(candle.volume || '0')),
-          })).filter((c: { close: number }) => c.close > 0)
+        // Calculate from date based on range
+        if (range === '1D') from.setDate(from.getDate() - 1)
+        else if (range === '1W') from.setDate(from.getDate() - 7)
+        else if (range === '1M') from.setMonth(from.getMonth() - 1)
+        else if (range === '3M') from.setMonth(from.getMonth() - 3)
+        else if (range === '6M') from.setMonth(from.getMonth() - 6)
+        else if (range === '1Y') from.setFullYear(from.getFullYear() - 1)
+        else from.setFullYear(from.getFullYear() - 5)
+
+        const candles = await getDhanHistoricalData(
+          id,
+          segment,
+          'EQUITY',
+          0,
+          Math.floor(from.getTime() / 1000).toString(),
+          Math.floor(now.getTime() / 1000).toString(),
+          intervals.dhan
+        )
+
+        if (candles.length > 0) {
+          const parsed = candles.map(c => ({
+            date: c.timestamp,
+            open: c.open,
+            high: c.high,
+            low: c.low,
+            close: c.close,
+            volume: c.volume,
+          })).filter(c => c.close > 0)
 
           if (parsed.length > 0) {
             return NextResponse.json({
@@ -114,12 +126,37 @@ export async function GET(
           }
         }
       }
+    }
+
+    // 2. Try Finance API (Yahoo)
+    try {
+      const intervals = INTERVAL_MAP[range]
+      const limit = LIMIT_MAP[range] || 30
+      const candles = await getFinanceHistoricalData(symbolUpper, intervals.yahoo, limit)
+
+      if (candles.length > 0) {
+        const parsed = candles.map(c => ({
+          date: c.timestamp,
+          open: c.open,
+          high: c.high,
+          low: c.low,
+          close: c.close,
+          volume: c.volume,
+        }))
+
+        if (parsed.length > 0) {
+          return NextResponse.json({
+            success: true,
+            data: parsed,
+            isRealData: true,
+          })
+        }
+      }
     } catch (apiErr) {
       console.warn(`[API /stocks/chart/${symbolUpper}] Finance API error:`, apiErr)
     }
 
-    // Fallback: generate mock chart data
-    const basePrice = searchParams.get('basePrice') ? parseFloat(searchParams.get('basePrice')!) : 1500
+    // 3. Fallback: generate mock chart data
     const mockData = generateMockChartData(symbolUpper, range, basePrice)
     return NextResponse.json({
       success: true,

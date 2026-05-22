@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   Card,
   CardContent,
@@ -25,6 +25,11 @@ import {
   ShoppingCart,
   Activity,
   RefreshCw,
+  Layers,
+  Target,
+  Gauge,
+  Zap,
+  Eye,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/lib/auth-store'
@@ -49,6 +54,7 @@ interface StockDetail {
   sector: string
   industry: string
   exchange: string
+  isin: string | null
   currentPrice: number
   change: number
   changePercent: number
@@ -56,9 +62,14 @@ interface StockDetail {
   high: number
   low: number
   previousClose: number
+  close: number
   volume: number
+  totalTradedValue: number
+  averageTradePrice: number
   week52High: number
   week52Low: number
+  upperCircuit: number
+  lowerCircuit: number
   marketCap: number
   peRatio: number | null
   eps: number
@@ -73,7 +84,12 @@ interface StockDetail {
   isFuturesAvailable: boolean
   isOptionsAvailable: boolean
   isFnoBan: boolean
-  isRealData?: boolean
+  strikeInterval: number | null
+  deliveryQuantity: number | null
+  deliveryPercentage: number | null
+  vwap: number | null
+  isRealData: boolean
+  dataSource: 'dhan' | 'yahoo' | 'database'
 }
 
 interface SimilarStock {
@@ -94,8 +110,69 @@ interface CandleData {
   volume: number
 }
 
+interface FutureContract {
+  underlying: string
+  expiryDate: string
+  lotSize: number
+  ltp: number
+  change: number
+  changePercent: number
+  open: number
+  high: number
+  low: number
+  previousClose: number
+  volume: number
+  oi: number
+  oiChange: number
+  basis: number
+  basisPercent: number
+}
+
+interface OptionChainItem {
+  strikePrice: number
+  expiryDate: string
+  ceLtp: number
+  ceChange: number
+  ceChangePercent: number
+  ceVolume: number
+  ceOI: number
+  ceOIChange: number
+  ceIV: number
+  ceDelta: number
+  ceGamma: number
+  ceTheta: number
+  ceVega: number
+  peLtp: number
+  peChange: number
+  peChangePercent: number
+  peVolume: number
+  peOI: number
+  peOIChange: number
+  peIV: number
+  peDelta: number
+  peGamma: number
+  peTheta: number
+  peVega: number
+}
+
+interface FnoData {
+  futures: FutureContract[]
+  optionChain: OptionChainItem[]
+  optionChainSummary: {
+    totalCallOI: number
+    totalPutOI: number
+    pcr: number
+    maxPain: number
+    ivPercentile: number
+    nearestExpiry: string
+    availableExpiries: string[]
+  }
+  isRealData: boolean
+  dataSource: 'dhan' | 'database'
+}
+
 type RangeOption = '1D' | '1W' | '1M' | '3M' | '6M' | '1Y' | '5Y'
-type OverviewTab = 'overview' | 'technicals' | 'news'
+type OverviewTab = 'overview' | 'fno' | 'technicals' | 'news'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -129,9 +206,26 @@ function formatDate(dateStr: string, range: RangeOption): string {
   return d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })
 }
 
+function formatExpiry(dateStr: string): string {
+  if (!dateStr) return '--'
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
 function calculateBrokerage(totalValue: number): number {
   const calculated = totalValue * 0.0005
   return Math.max(20, Math.min(500, Math.round(calculated * 100) / 100))
+}
+
+function getDataSourceBadge(dataSource: 'dhan' | 'yahoo' | 'database') {
+  switch (dataSource) {
+    case 'dhan':
+      return <Badge className="text-[9px] font-bold bg-[#00d09c]/10 text-[#00d09c] border-[#00d09c]/20 border px-1.5 py-0">LIVE</Badge>
+    case 'yahoo':
+      return <Badge className="text-[9px] font-bold bg-amber-500/10 text-amber-600 border-amber-500/20 border px-1.5 py-0">DELAYED</Badge>
+    case 'database':
+      return <Badge className="text-[9px] font-bold bg-gray-500/10 text-gray-500 border-gray-500/20 border px-1.5 py-0">DB</Badge>
+  }
 }
 
 // ─── Chart Tooltip ────────────────────────────────────────────────────────
@@ -277,6 +371,12 @@ export function StockOverviewPage() {
   const [detailLoading, setDetailLoading] = useState(true)
   const [chartLoading, setChartLoading] = useState(true)
 
+  // F&O state
+  const [fnoData, setFnoData] = useState<FnoData | null>(null)
+  const [fnoLoading, setFnoLoading] = useState(false)
+  const [selectedExpiry, setSelectedExpiry] = useState<string>('')
+  const optionChainRef = useRef<HTMLDivElement>(null)
+
   // Trade modal state
   const [showTradePanel, setShowTradePanel] = useState(false)
   const [orderSide, setOrderSide] = useState<'buy' | 'sell'>('buy')
@@ -285,8 +385,9 @@ export function StockOverviewPage() {
   const [quantity, setQuantity] = useState(10)
   const [price, setPrice] = useState('')
   const [placingOrder, setPlacingOrder] = useState(false)
+  const [tradeSegment, setTradeSegment] = useState<'EQUITY' | 'FUTURES' | 'OPTIONS'>('EQUITY')
 
-  // Fetch stock detail
+  // ─── Fetch stock detail ─────────────────────────────────────────
   const fetchDetail = useCallback(async () => {
     if (!selectedStockSymbol) return
     setDetailLoading(true)
@@ -306,7 +407,7 @@ export function StockOverviewPage() {
     }
   }, [selectedStockSymbol])
 
-  // Fetch chart data
+  // ─── Fetch chart data ───────────────────────────────────────────
   const fetchChart = useCallback(async () => {
     if (!selectedStockSymbol) return
     setChartLoading(true)
@@ -324,6 +425,28 @@ export function StockOverviewPage() {
     }
   }, [selectedStockSymbol, range, stockDetail?.currentPrice])
 
+  // ─── Fetch F&O data ─────────────────────────────────────────────
+  const fetchFnoData = useCallback(async () => {
+    if (!selectedStockSymbol) return
+    setFnoLoading(true)
+    try {
+      const res = await fetch(`/api/stocks/fno/${selectedStockSymbol}`)
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success && json.data) {
+          setFnoData(json.data)
+          if (json.data.optionChainSummary?.nearestExpiry && !selectedExpiry) {
+            setSelectedExpiry(json.data.optionChainSummary.nearestExpiry)
+          }
+        }
+      }
+    } catch {
+      // Keep previous data
+    } finally {
+      setFnoLoading(false)
+    }
+  }, [selectedStockSymbol, selectedExpiry])
+
   useEffect(() => {
     fetchDetail()
   }, [fetchDetail])
@@ -338,6 +461,20 @@ export function StockOverviewPage() {
     return () => clearInterval(interval)
   }, [fetchDetail])
 
+  // Fetch F&O data when F&O tab is active or when stock has F&O
+  useEffect(() => {
+    if (stockDetail && (stockDetail.isFuturesAvailable || stockDetail.isOptionsAvailable)) {
+      fetchFnoData()
+    }
+  }, [stockDetail?.isFuturesAvailable, stockDetail?.isOptionsAvailable, fetchFnoData])
+
+  // Auto-refresh F&O data every 30s when F&O tab is active
+  useEffect(() => {
+    if (overviewTab !== 'fno') return
+    const interval = setInterval(fetchFnoData, 30000)
+    return () => clearInterval(interval)
+  }, [overviewTab, fetchFnoData])
+
   // Set price when stock changes
   useEffect(() => {
     if (stockDetail) {
@@ -345,7 +482,7 @@ export function StockOverviewPage() {
     }
   }, [stockDetail?.currentPrice])
 
-  // Derived
+  // ─── Derived values ─────────────────────────────────────────────
   const isPositive = stockDetail ? stockDetail.change >= 0 : true
   const gradientId = `stock-gradient-${selectedStockSymbol}`
 
@@ -365,7 +502,30 @@ export function StockOverviewPage() {
     }
   }, [chartDataFormatted])
 
-  // Order calculations
+  // ─── Option chain quick view ────────────────────────────────────
+  const atmStrike = useMemo(() => {
+    if (!stockDetail || !fnoData?.optionChain?.length) return 0
+    const strikes = fnoData.optionChain.map(o => o.strikePrice)
+    return strikes.reduce((prev, curr) =>
+      Math.abs(curr - stockDetail.currentPrice) < Math.abs(prev - stockDetail.currentPrice) ? curr : prev
+    )
+  }, [stockDetail?.currentPrice, fnoData?.optionChain])
+
+  const filteredOptionChain = useMemo(() => {
+    if (!fnoData?.optionChain?.length || !atmStrike) return []
+    const chain = selectedExpiry
+      ? fnoData.optionChain.filter(o => o.expiryDate === selectedExpiry)
+      : fnoData.optionChain
+    if (!chain.length) return fnoData.optionChain
+    const sorted = [...chain].sort((a, b) => a.strikePrice - b.strikePrice)
+    const atmIndex = sorted.findIndex(o => o.strikePrice === atmStrike)
+    if (atmIndex === -1) return sorted.slice(0, 11)
+    const start = Math.max(0, atmIndex - 5)
+    const end = Math.min(sorted.length, atmIndex + 6)
+    return sorted.slice(start, end)
+  }, [fnoData?.optionChain, atmStrike, selectedExpiry])
+
+  // ─── Order calculations ─────────────────────────────────────────
   const estimatedTotal = useMemo(() => {
     const p = orderType === 'MARKET'
       ? (stockDetail?.currentPrice ?? 0)
@@ -377,7 +537,10 @@ export function StockOverviewPage() {
     return calculateBrokerage(estimatedTotal)
   }, [estimatedTotal])
 
-  // Handle place order
+  const availableBalance = user?.virtualBalance ?? 0
+  const buyingPower = availableBalance * 5 // 5x margin
+
+  // ─── Handle place order ─────────────────────────────────────────
   const handlePlaceOrder = async () => {
     if (!token || !stockDetail) return
 
@@ -397,13 +560,17 @@ export function StockOverviewPage() {
         symbol: stockDetail.symbol,
         direction: orderSide === 'buy' ? 'BUY' : 'SELL',
         orderType: orderType,
-        segment: 'EQUITY',
+        segment: tradeSegment,
         productType: productType,
         quantity: quantity,
       }
 
       if (orderType === 'LIMIT' && price) {
         body.price = parseFloat(price)
+      }
+
+      if (tradeSegment === 'FUTURES') {
+        body.lotSize = stockDetail.lotSize
       }
 
       const res = await fetch('/api/trade/place', {
@@ -433,7 +600,7 @@ export function StockOverviewPage() {
           price: fillPrice,
           time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase(),
           orderId: data.order?.id?.slice(-8).toUpperCase() || 'N/A',
-          segment: 'EQUITY',
+          segment: tradeSegment,
           totalValue: data.order?.totalValue,
           brokerage: data.order?.brokerage,
         })
@@ -447,6 +614,14 @@ export function StockOverviewPage() {
       toast.error('Network error placing order')
     } finally {
       setPlacingOrder(false)
+    }
+  }
+
+  // ─── Navigate to option chain page ──────────────────────────────
+  const handleViewFullOptionChain = () => {
+    if (stockDetail) {
+      useAppStore.getState().setSelectedStockSymbol(stockDetail.symbol)
+      setCurrentPage('optionChain')
     }
   }
 
@@ -484,25 +659,30 @@ export function StockOverviewPage() {
     )
   }
 
+  // Determine visible tabs
+  const showFnoTab = stockDetail.isFuturesAvailable || stockDetail.isOptionsAvailable
+  const tabs: OverviewTab[] = ['overview', ...(showFnoTab ? ['fno' as OverviewTab] : []), 'technicals', 'news']
+
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
       {/* ═══ Sticky Header ═════════════════════════════════════════════ */}
       <div className="sticky top-14 z-30 bg-white border-b border-[#e5e7eb]">
         <div className="px-4 sm:px-6 lg:px-8 py-3">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={() => setCurrentPage('trading')}
-                className="size-8 flex items-center justify-center rounded-lg hover:bg-[#f5f7fa] text-[#6b7280] hover:text-[#1a1a1a] transition-colors"
+                className="size-8 flex-shrink-0 flex items-center justify-center rounded-lg hover:bg-[#f5f7fa] text-[#6b7280] hover:text-[#1a1a1a] transition-colors"
               >
                 <ArrowLeft className="size-5" />
               </button>
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-bold text-[#1a1a1a]">{stockDetail.name}</h1>
-                  <span className="text-[10px] font-bold bg-[#f5f7fa] text-[#6b7280] px-2 py-0.5 rounded-md">
+                  <h1 className="text-lg font-bold text-[#1a1a1a] truncate">{stockDetail.name}</h1>
+                  <span className="text-[10px] font-bold bg-[#f5f7fa] text-[#6b7280] px-2 py-0.5 rounded-md flex-shrink-0">
                     {stockDetail.exchange}
                   </span>
+                  {getDataSourceBadge(stockDetail.dataSource)}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-2xl font-bold font-mono text-[#1a1a1a]">
@@ -515,8 +695,8 @@ export function StockOverviewPage() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {stockDetail.isFuturesAvailable && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {(stockDetail.isFuturesAvailable || stockDetail.isOptionsAvailable) && (
                 <Badge variant="outline" className="text-[10px] font-bold border-[#00D09C]/30 text-[#00D09C]">
                   F&O
                 </Badge>
@@ -529,10 +709,10 @@ export function StockOverviewPage() {
               <Button
                 className="bg-[#00D09C] hover:bg-[#00b88a] text-white font-semibold rounded-lg gap-1.5"
                 size="sm"
-                onClick={() => { setOrderSide('buy'); setShowTradePanel(true) }}
+                onClick={() => { setOrderSide('buy'); setTradeSegment('EQUITY'); setShowTradePanel(true) }}
               >
                 <ShoppingCart className="size-4" />
-                Buy Now
+                <span className="hidden sm:inline">Buy Now</span>
               </Button>
             </div>
           </div>
@@ -540,28 +720,20 @@ export function StockOverviewPage() {
 
         {/* Tabs */}
         <div className="px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto flex items-center gap-1">
-            {(['overview', 'technicals', 'news'] as OverviewTab[]).map((tab) => (
+          <div className="max-w-4xl mx-auto flex items-center gap-1 overflow-x-auto">
+            {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setOverviewTab(tab)}
-                className={`px-4 py-2.5 text-sm font-semibold capitalize border-b-2 transition-all ${
+                className={`px-4 py-2.5 text-sm font-semibold capitalize border-b-2 transition-all whitespace-nowrap ${
                   overviewTab === tab
                     ? 'text-[#00D09C] border-[#00D09C]'
                     : 'text-[#6b7280] border-transparent hover:text-[#1a1a1a]'
                 }`}
               >
-                {tab}
+                {tab === 'fno' ? 'F&O' : tab}
               </button>
             ))}
-            {stockDetail.isFuturesAvailable && (
-              <button
-                onClick={() => navigateToStock(stockDetail.symbol)}
-                className="px-4 py-2.5 text-sm font-semibold text-[#6b7280] border-b-2 border-transparent hover:text-[#1a1a1a] ml-auto"
-              >
-                F&O
-              </button>
-            )}
           </div>
         </div>
       </div>
@@ -570,7 +742,9 @@ export function StockOverviewPage() {
       <div className="px-4 sm:px-6 lg:px-8 py-6">
         <div className="max-w-4xl mx-auto space-y-6">
 
-          {/* ─── Chart Section ────────────────────────────────────────── */}
+          {/* ═══════════════════════════════════════════════════════════════
+              OVERVIEW TAB
+          ═══════════════════════════════════════════════════════════════ */}
           {overviewTab === 'overview' && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -578,18 +752,18 @@ export function StockOverviewPage() {
               transition={{ duration: 0.3 }}
               className="space-y-6"
             >
-              {/* Chart Card */}
+              {/* ─── Chart Card ──────────────────────────────────────── */}
               <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
                 <CardContent className="p-5">
                   {/* Range Selector */}
                   <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider mr-2">NSE</span>
+                    <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                      <span className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider mr-2 flex-shrink-0">NSE</span>
                       {(['1D', '1W', '1M', '3M', '6M', '1Y', '5Y'] as RangeOption[]).map((r) => (
                         <button
                           key={r}
                           onClick={() => setRange(r)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex-shrink-0 ${
                             range === r
                               ? 'bg-[#00D09C] text-white shadow-sm'
                               : 'text-[#6b7280] hover:bg-[#f5f7fa] hover:text-[#1a1a1a]'
@@ -662,7 +836,7 @@ export function StockOverviewPage() {
                 </CardContent>
               </Card>
 
-              {/* ─── Performance Section ────────────────────────────────── */}
+              {/* ─── Performance Section ──────────────────────────────── */}
               <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
                 <CardContent className="p-5 space-y-5">
                   <div className="flex items-center gap-2">
@@ -694,16 +868,16 @@ export function StockOverviewPage() {
                     />
                   )}
 
-                  {/* Key Metrics */}
-                  <div className="grid grid-cols-3 gap-4 pt-2">
+                  {/* Key Metrics Grid */}
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 pt-2">
                     <div className="text-center">
-                      <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider">Open Price</p>
+                      <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider">Open</p>
                       <p className="text-sm font-bold font-mono text-[#1a1a1a] mt-1">
                         {stockDetail.open > 0 ? stockDetail.open.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}
                       </p>
                     </div>
                     <div className="text-center">
-                      <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider">Prev. Close</p>
+                      <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider">Prev Close</p>
                       <p className="text-sm font-bold font-mono text-[#1a1a1a] mt-1">
                         {stockDetail.previousClose > 0 ? stockDetail.previousClose.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}
                       </p>
@@ -714,9 +888,81 @@ export function StockOverviewPage() {
                         {stockDetail.volume > 0 ? formatVolume(stockDetail.volume) : '--'}
                       </p>
                     </div>
+                    <div className="text-center">
+                      <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider">VWAP</p>
+                      <p className="text-sm font-bold font-mono text-[#1a1a1a] mt-1">
+                        {stockDetail.vwap ? stockDetail.vwap.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider">Avg Price</p>
+                      <p className="text-sm font-bold font-mono text-[#1a1a1a] mt-1">
+                        {stockDetail.averageTradePrice > 0 ? stockDetail.averageTradePrice.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '--'}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider">Traded Value</p>
+                      <p className="text-sm font-bold font-mono text-[#1a1a1a] mt-1">
+                        {stockDetail.totalTradedValue > 0 ? formatLargeNumber(stockDetail.totalTradedValue) : '--'}
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
+
+              {/* ─── Circuit Limits Card ─────────────────────────────── */}
+              {(stockDetail.upperCircuit > 0 || stockDetail.lowerCircuit > 0) && (
+                <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
+                  <CardContent className="p-5">
+                    <h3 className="text-base font-semibold text-[#1a1a1a] mb-4">Circuit Limits</h3>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-[#6b7280] uppercase tracking-wider">Upper Circuit</p>
+                        <div className="flex items-center gap-2">
+                          <div className="size-3 rounded-full bg-[#00d09c]" />
+                          <span className="text-lg font-bold font-mono text-[#00d09c]">
+                            {stockDetail.upperCircuit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        {stockDetail.currentPrice > 0 && (
+                          <p className="text-xs text-[#6b7280]">
+                            {((stockDetail.upperCircuit - stockDetail.currentPrice) / stockDetail.currentPrice * 100).toFixed(2)}% away
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-[#6b7280] uppercase tracking-wider">Lower Circuit</p>
+                        <div className="flex items-center gap-2">
+                          <div className="size-3 rounded-full bg-[#eb5b3c]" />
+                          <span className="text-lg font-bold font-mono text-[#eb5b3c]">
+                            {stockDetail.lowerCircuit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        {stockDetail.currentPrice > 0 && (
+                          <p className="text-xs text-[#6b7280]">
+                            {((stockDetail.currentPrice - stockDetail.lowerCircuit) / stockDetail.currentPrice * 100).toFixed(2)}% away
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {/* Visual bar */}
+                    <div className="mt-4 relative">
+                      {stockDetail.upperCircuit > stockDetail.lowerCircuit && (
+                        <>
+                          <div className="h-3 rounded-full bg-gradient-to-r from-[#eb5b3c]/20 via-[#f0f2f5] to-[#00d09c]/20" />
+                          <div
+                            className="absolute top-1/2 -translate-y-1/2 size-3.5 bg-[#1a1a1a] border-2 border-white rounded-full shadow-sm z-10"
+                            style={{
+                              left: `${((stockDetail.currentPrice - stockDetail.lowerCircuit) / (stockDetail.upperCircuit - stockDetail.lowerCircuit)) * 100}%`,
+                              transform: 'translate(-50%, -50%)'
+                            }}
+                          />
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* ─── Fundamentals Section ─────────────────────────────── */}
               <CollapsibleSection title="Fundamentals" defaultOpen={true}>
@@ -740,62 +986,85 @@ export function StockOverviewPage() {
 
               {/* ─── About Section ─────────────────────────────────────── */}
               <CollapsibleSection title={`About ${stockDetail.name}`}>
-                <div className="space-y-2 text-sm text-[#6b7280] leading-relaxed">
-                  <p><span className="font-medium text-[#1a1a1a]">Sector:</span> {stockDetail.sector}</p>
-                  {stockDetail.industry && <p><span className="font-medium text-[#1a1a1a]">Industry:</span> {stockDetail.industry}</p>}
-                  <p><span className="font-medium text-[#1a1a1a]">Exchange:</span> {stockDetail.exchange}</p>
-                  <p><span className="font-medium text-[#1a1a1a]">Lot Size:</span> {stockDetail.lotSize}</p>
-                  <p><span className="font-medium text-[#1a1a1a]">F&O Available:</span> {stockDetail.isFuturesAvailable || stockDetail.isOptionsAvailable ? 'Yes' : 'No'}</p>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f2f5]">
+                    <span className="text-sm text-[#6b7280]">Sector</span>
+                    <span className="text-sm font-semibold text-[#1a1a1a]">{stockDetail.sector || '--'}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f2f5]">
+                    <span className="text-sm text-[#6b7280]">Industry</span>
+                    <span className="text-sm font-semibold text-[#1a1a1a]">{stockDetail.industry || '--'}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f2f5]">
+                    <span className="text-sm text-[#6b7280]">Exchange</span>
+                    <span className="text-sm font-semibold text-[#1a1a1a]">{stockDetail.exchange}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f2f5]">
+                    <span className="text-sm text-[#6b7280]">ISIN</span>
+                    <span className="text-sm font-mono font-semibold text-[#1a1a1a]">{stockDetail.isin || '--'}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f2f5]">
+                    <span className="text-sm text-[#6b7280]">Lot Size</span>
+                    <span className="text-sm font-semibold text-[#1a1a1a]">{stockDetail.lotSize}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-[#f0f2f5]">
+                    <span className="text-sm text-[#6b7280]">F&O Available</span>
+                    <span className={`text-sm font-semibold ${stockDetail.isFuturesAvailable || stockDetail.isOptionsAvailable ? 'text-[#00d09c]' : 'text-[#1a1a1a]'}`}>
+                      {stockDetail.isFuturesAvailable || stockDetail.isOptionsAvailable ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+                  {stockDetail.strikeInterval && (
+                    <div className="flex items-center justify-between py-2 border-b border-[#f0f2f5]">
+                      <span className="text-sm text-[#6b7280]">Strike Interval</span>
+                      <span className="text-sm font-semibold text-[#1a1a1a]">₹{stockDetail.strikeInterval}</span>
+                    </div>
+                  )}
                 </div>
               </CollapsibleSection>
 
-              {/* ─── Similar Stocks ─────────────────────────────────────── */}
+              {/* ─── Similar Stocks (Horizontal Scroll) ────────────────── */}
               {similarStocks.length > 0 && (
-                <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-base font-semibold text-[#1a1a1a]">Similar Stocks</h3>
-                      <span className="text-xs text-[#6b7280] flex items-center gap-1">
-                        <BarChart3 className="size-3" />
-                        Market Price
-                      </span>
-                    </div>
-                    <div className="space-y-0">
-                      {similarStocks.map((stock) => {
-                        const stockPositive = stock.changePercent >= 0
-                        return (
-                          <button
-                            key={stock.symbol}
-                            onClick={() => navigateToStock(stock.symbol)}
-                            className="w-full flex items-center justify-between py-3 border-b border-[#f0f2f5] last:border-b-0 hover:bg-[#f8f9fb] transition-colors px-1 rounded-lg"
-                          >
-                            <div className="text-left">
-                              <p className="text-sm font-semibold text-[#1a1a1a]">{stock.name}</p>
-                              <p className="text-xs text-[#6b7280]">{stock.symbol}</p>
-                            </div>
-                            <div className="text-right flex items-center gap-3">
-                              <span className="text-sm font-bold font-mono text-[#1a1a1a]">
-                                {stock.currentPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                              </span>
-                              <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-xs font-bold ${
-                                stockPositive ? 'bg-[#00d09c]/10 text-[#00d09c]' : 'bg-[#eb5b3c]/10 text-[#eb5b3c]'
-                              }`}>
-                                {stockPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
-                              </span>
-                            </div>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-base font-semibold text-[#1a1a1a]">Similar Stocks</h3>
+                    <span className="text-xs text-[#6b7280] flex items-center gap-1">
+                      <BarChart3 className="size-3" />
+                      Market Price
+                    </span>
+                  </div>
+                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-thin">
+                    {similarStocks.map((stock) => {
+                      const stockPositive = stock.changePercent >= 0
+                      return (
+                        <button
+                          key={stock.symbol}
+                          onClick={() => navigateToStock(stock.symbol)}
+                          className="flex-shrink-0 w-[160px] bg-white border border-[#e5e7eb] rounded-xl p-3 hover:border-[#00d09c]/40 hover:shadow-sm transition-all text-left"
+                        >
+                          <p className="text-sm font-semibold text-[#1a1a1a] truncate">{stock.name}</p>
+                          <p className="text-xs text-[#6b7280]">{stock.symbol}</p>
+                          <div className="mt-2 flex items-center justify-between">
+                            <span className="text-sm font-bold font-mono text-[#1a1a1a]">
+                              {stock.currentPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                            </span>
+                            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                              stockPositive ? 'bg-[#00d09c]/10 text-[#00d09c]' : 'bg-[#eb5b3c]/10 text-[#eb5b3c]'
+                            }`}>
+                              {stockPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                            </span>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
               )}
 
-              {/* ─── Bottom Buy Button (Mobile) ──────────────────────────── */}
+              {/* ─── Bottom Buy Button (Mobile) ────────────────────────── */}
               <div className="lg:hidden sticky bottom-16 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-white border-t border-[#e5e7eb]">
                 <Button
                   className="w-full h-12 bg-[#00D09C] hover:bg-[#00b88a] text-white font-bold rounded-xl text-base gap-2"
-                  onClick={() => { setOrderSide('buy'); setShowTradePanel(true) }}
+                  onClick={() => { setOrderSide('buy'); setTradeSegment('EQUITY'); setShowTradePanel(true) }}
                 >
                   <ShoppingCart className="size-5" />
                   Buy {stockDetail.symbol}
@@ -804,7 +1073,350 @@ export function StockOverviewPage() {
             </motion.div>
           )}
 
-          {/* ─── Technicals Tab ──────────────────────────────────────── */}
+          {/* ═══════════════════════════════════════════════════════════════
+              F&O TAB
+          ═══════════════════════════════════════════════════════════════ */}
+          {overviewTab === 'fno' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              {/* Data Source Banner */}
+              {fnoData && !fnoData.isRealData && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                  <Zap className="size-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800">Connect Dhan API for live F&O data</p>
+                    <p className="text-xs text-amber-600 mt-0.5">
+                      Current F&O data is from database/mock source. Connect your Dhan API key for real-time data.
+                    </p>
+                  </div>
+                  {fnoData && getDataSourceBadge(fnoData.dataSource)}
+                </div>
+              )}
+
+              {/* ─── F&O Summary Card ────────────────────────────────── */}
+              <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-base font-semibold text-[#1a1a1a] flex items-center gap-2">
+                      <Layers className="size-4 text-[#00D09C]" />
+                      F&O Summary
+                    </h3>
+                    <button
+                      onClick={fetchFnoData}
+                      className="size-8 flex items-center justify-center rounded-lg hover:bg-[#f5f7fa] text-[#6b7280] hover:text-[#1a1a1a] transition-colors"
+                    >
+                      <RefreshCw className={`size-4 ${fnoLoading ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+
+                  {fnoLoading && !fnoData ? (
+                    <div className="flex items-center justify-center py-10">
+                      <Loader2 className="size-6 animate-spin text-[#00D09C]" />
+                    </div>
+                  ) : fnoData ? (
+                    <>
+                      {/* Summary Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        {/* PCR */}
+                        <div className="bg-[#f8f9fb] rounded-xl p-4 text-center">
+                          <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">PCR</p>
+                          <p className={`text-2xl font-bold font-mono ${
+                            fnoData.optionChainSummary.pcr > 1 ? 'text-[#00d09c]' :
+                            fnoData.optionChainSummary.pcr < 0.7 ? 'text-[#eb5b3c]' :
+                            'text-[#1a1a1a]'
+                          }`}>
+                            {fnoData.optionChainSummary.pcr > 0 ? fnoData.optionChainSummary.pcr.toFixed(2) : '--'}
+                          </p>
+                          <p className="text-[10px] text-[#6b7280] mt-0.5">
+                            {fnoData.optionChainSummary.pcr > 1 ? 'Bullish' :
+                             fnoData.optionChainSummary.pcr < 0.7 ? 'Bearish' : 'Neutral'}
+                          </p>
+                        </div>
+
+                        {/* Max Pain */}
+                        <div className="bg-[#f8f9fb] rounded-xl p-4 text-center">
+                          <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Max Pain</p>
+                          <p className="text-2xl font-bold font-mono text-[#1a1a1a]">
+                            {fnoData.optionChainSummary.maxPain > 0 ? '₹' + fnoData.optionChainSummary.maxPain.toLocaleString('en-IN') : '--'}
+                          </p>
+                          <div className="flex items-center justify-center gap-1 mt-0.5">
+                            <Target className="size-3 text-[#6b7280]" />
+                            <p className="text-[10px] text-[#6b7280]">
+                              {stockDetail.currentPrice > 0 && fnoData.optionChainSummary.maxPain > 0
+                                ? `${Math.abs(((stockDetail.currentPrice - fnoData.optionChainSummary.maxPain) / fnoData.optionChainSummary.maxPain) * 100).toFixed(1)}% ${stockDetail.currentPrice > fnoData.optionChainSummary.maxPain ? 'above' : 'below'}`
+                                : 'Strike level'
+                              }
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* IV Percentile */}
+                        <div className="bg-[#f8f9fb] rounded-xl p-4 text-center">
+                          <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">IV Percentile</p>
+                          <p className="text-2xl font-bold font-mono text-[#1a1a1a]">
+                            {fnoData.optionChainSummary.ivPercentile > 0 ? `${fnoData.optionChainSummary.ivPercentile.toFixed(0)}%` : '--'}
+                          </p>
+                          <div className="flex items-center justify-center gap-1 mt-0.5">
+                            <Gauge className="size-3 text-[#6b7280]" />
+                            <p className="text-[10px] text-[#6b7280]">
+                              {fnoData.optionChainSummary.ivPercentile > 70 ? 'High Vol' :
+                               fnoData.optionChainSummary.ivPercentile > 30 ? 'Normal' :
+                               fnoData.optionChainSummary.ivPercentile > 0 ? 'Low Vol' : 'Implied Vol'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Nearest Expiry */}
+                        <div className="bg-[#f8f9fb] rounded-xl p-4 text-center">
+                          <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider mb-1">Nearest Expiry</p>
+                          <p className="text-lg font-bold font-mono text-[#1a1a1a]">
+                            {fnoData.optionChainSummary.nearestExpiry
+                              ? formatExpiry(fnoData.optionChainSummary.nearestExpiry)
+                              : '--'}
+                          </p>
+                          {fnoData.optionChainSummary.availableExpiries.length > 1 && (
+                            <select
+                              value={selectedExpiry}
+                              onChange={(e) => setSelectedExpiry(e.target.value)}
+                              className="mt-1 text-[10px] bg-white border border-[#e5e7eb] rounded-md px-2 py-0.5 text-[#6b7280] font-medium"
+                            >
+                              {fnoData.optionChainSummary.availableExpiries.map((exp) => (
+                                <option key={exp} value={exp}>{formatExpiry(exp)}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* OI Summary Bar */}
+                      <div className="mt-4 flex items-center gap-3 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <div className="size-2.5 rounded-sm bg-[#00d09c]" />
+                          <span className="text-[#6b7280]">Total Call OI:</span>
+                          <span className="font-mono font-semibold text-[#1a1a1a]">
+                            {fnoData.optionChainSummary.totalCallOI > 0 ? formatVolume(fnoData.optionChainSummary.totalCallOI) : '--'}
+                          </span>
+                        </div>
+                        <div className="h-3 w-px bg-[#e5e7eb]" />
+                        <div className="flex items-center gap-1.5">
+                          <div className="size-2.5 rounded-sm bg-[#eb5b3c]" />
+                          <span className="text-[#6b7280]">Total Put OI:</span>
+                          <span className="font-mono font-semibold text-[#1a1a1a]">
+                            {fnoData.optionChainSummary.totalPutOI > 0 ? formatVolume(fnoData.optionChainSummary.totalPutOI) : '--'}
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-10 text-[#6b7280] text-sm">
+                      No F&O data available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* ─── Futures Contracts Card ──────────────────────────── */}
+              <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
+                <CardContent className="p-5">
+                  <h3 className="text-base font-semibold text-[#1a1a1a] mb-4 flex items-center gap-2">
+                    <BarChart3 className="size-4 text-[#00D09C]" />
+                    Futures Contracts
+                  </h3>
+
+                  {fnoData?.futures && fnoData.futures.length > 0 ? (
+                    <div className="overflow-x-auto -mx-5 px-5">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-[#e5e7eb]">
+                            <th className="px-2 py-2.5 text-left font-semibold text-[#6b7280] uppercase tracking-wider text-[10px]">Expiry</th>
+                            <th className="px-2 py-2.5 text-right font-semibold text-[#6b7280] uppercase tracking-wider text-[10px]">LTP</th>
+                            <th className="px-2 py-2.5 text-right font-semibold text-[#6b7280] uppercase tracking-wider text-[10px]">Change</th>
+                            <th className="px-2 py-2.5 text-right font-semibold text-[#6b7280] uppercase tracking-wider text-[10px]">OI</th>
+                            <th className="px-2 py-2.5 text-right font-semibold text-[#6b7280] uppercase tracking-wider text-[10px]">Volume</th>
+                            <th className="px-2 py-2.5 text-right font-semibold text-[#6b7280] uppercase tracking-wider text-[10px]">Basis</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {fnoData.futures.map((fut, idx) => {
+                            const isUp = fut.change >= 0
+                            return (
+                              <tr key={idx} className="border-b border-[#f0f2f5] last:border-b-0 hover:bg-[#f8f9fb] transition-colors">
+                                <td className="px-2 py-3 text-left">
+                                  <span className="font-medium text-[#1a1a1a]">{formatExpiry(fut.expiryDate)}</span>
+                                  <span className="text-[10px] text-[#6b7280] ml-1.5">({fut.lotSize} lot)</span>
+                                </td>
+                                <td className="px-2 py-3 text-right font-mono font-semibold text-[#1a1a1a]">
+                                  {fut.ltp.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                </td>
+                                <td className={`px-2 py-3 text-right font-mono font-semibold ${isUp ? 'text-[#00d09c]' : 'text-[#eb5b3c]'}`}>
+                                  {isUp ? '+' : ''}{fut.change.toFixed(2)}
+                                  <span className="ml-1 text-[10px]">({isUp ? '+' : ''}{fut.changePercent.toFixed(2)}%)</span>
+                                </td>
+                                <td className="px-2 py-3 text-right font-mono text-[#6b7280]">
+                                  {fut.oi > 0 ? formatVolume(fut.oi) : '--'}
+                                </td>
+                                <td className="px-2 py-3 text-right font-mono text-[#6b7280]">
+                                  {fut.volume > 0 ? formatVolume(fut.volume) : '--'}
+                                </td>
+                                <td className="px-2 py-3 text-right font-mono">
+                                  <span className={fut.basis >= 0 ? 'text-[#00d09c]' : 'text-[#eb5b3c]'}>
+                                    {fut.basis.toFixed(2)}
+                                  </span>
+                                  <span className="text-[10px] text-[#6b7280] ml-1">({fut.basisPercent.toFixed(2)}%)</span>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-[#6b7280] text-sm">
+                      No futures contracts available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* ─── Option Chain Quick View ──────────────────────────── */}
+              <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-base font-semibold text-[#1a1a1a] flex items-center gap-2">
+                      <Eye className="size-4 text-[#00D09C]" />
+                      Option Chain Quick View
+                    </h3>
+                    <span className="text-xs text-[#6b7280]">
+                      ATM: ₹{atmStrike.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+
+                  {fnoLoading && !fnoData ? (
+                    <div className="flex items-center justify-center py-10">
+                      <Loader2 className="size-6 animate-spin text-[#00D09C]" />
+                    </div>
+                  ) : filteredOptionChain.length > 0 ? (
+                    <div className="overflow-x-auto -mx-5 px-5" ref={optionChainRef}>
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-[#e5e7eb]">
+                            <th colSpan={3} className="px-2 py-2.5 text-center font-semibold text-[#00d09c] uppercase tracking-wider text-[10px]">CALLS</th>
+                            <th className="px-2 py-2.5 text-center font-bold text-[#1a1a1a] bg-[#f5f7fa] border-x border-[#e5e7eb] uppercase tracking-wider text-[10px]">Strike</th>
+                            <th colSpan={3} className="px-2 py-2.5 text-center font-semibold text-[#eb5b3c] uppercase tracking-wider text-[10px]">PUTS</th>
+                          </tr>
+                          <tr className="border-b border-[#e5e7eb] text-[#6b7280]">
+                            <th className="px-2 py-2 text-right font-medium text-[10px]">OI</th>
+                            <th className="px-2 py-2 text-right font-medium text-[10px]">Chg</th>
+                            <th className="px-2 py-2 text-right font-medium text-[10px]">LTP</th>
+                            <th className="px-2 py-2 text-center font-bold bg-[#f5f7fa] border-x border-[#e5e7eb] text-[10px]">₹</th>
+                            <th className="px-2 py-2 text-left font-medium text-[10px]">LTP</th>
+                            <th className="px-2 py-2 text-left font-medium text-[10px]">Chg</th>
+                            <th className="px-2 py-2 text-left font-medium text-[10px]">OI</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredOptionChain.map((opt) => {
+                            const isAtm = opt.strikePrice === atmStrike
+                            const ceItm = opt.strikePrice < stockDetail.currentPrice
+                            const peItm = opt.strikePrice > stockDetail.currentPrice
+
+                            return (
+                              <tr
+                                key={opt.strikePrice}
+                                className={`border-b border-[#f0f2f5] last:border-b-0 ${
+                                  isAtm ? 'bg-[#00d09c]/8' : 'hover:bg-[#f8f9fb]'
+                                }`}
+                              >
+                                {/* CE Side */}
+                                <td className={`px-2 py-2 text-right font-mono text-[#6b7280] ${ceItm ? 'bg-[#00d09c]/5' : ''}`}>
+                                  {opt.ceOI > 0 ? formatVolume(opt.ceOI) : '-'}
+                                </td>
+                                <td className={`px-2 py-2 text-right font-mono ${opt.ceChange >= 0 ? 'text-[#00d09c]' : 'text-[#eb5b3c]'} ${ceItm ? 'bg-[#00d09c]/5' : ''}`}>
+                                  {opt.ceChange !== 0 ? `${opt.ceChange >= 0 ? '+' : ''}${opt.ceChange.toFixed(2)}` : '-'}
+                                </td>
+                                <td className={`px-2 py-2 text-right font-mono font-semibold text-[#1a1a1a] ${ceItm ? 'bg-[#00d09c]/5' : ''}`}>
+                                  {opt.ceLtp > 0 ? opt.ceLtp.toFixed(2) : '-'}
+                                </td>
+
+                                {/* Strike */}
+                                <td className={`px-2 py-2 text-center font-mono font-bold bg-[#f5f7fa] border-x border-[#e5e7eb] ${
+                                  isAtm ? 'bg-[#00d09c]/15 text-[#00d09c]' : 'text-[#1a1a1a]'
+                                }`}>
+                                  {opt.strikePrice.toLocaleString('en-IN')}
+                                </td>
+
+                                {/* PE Side */}
+                                <td className={`px-2 py-2 text-left font-mono font-semibold text-[#1a1a1a] ${peItm ? 'bg-[#eb5b3c]/5' : ''}`}>
+                                  {opt.peLtp > 0 ? opt.peLtp.toFixed(2) : '-'}
+                                </td>
+                                <td className={`px-2 py-2 text-left font-mono ${opt.peChange >= 0 ? 'text-[#00d09c]' : 'text-[#eb5b3c]'} ${peItm ? 'bg-[#eb5b3c]/5' : ''}`}>
+                                  {opt.peChange !== 0 ? `${opt.peChange >= 0 ? '+' : ''}${opt.peChange.toFixed(2)}` : '-'}
+                                </td>
+                                <td className={`px-2 py-2 text-left font-mono text-[#6b7280] ${peItm ? 'bg-[#eb5b3c]/5' : ''}`}>
+                                  {opt.peOI > 0 ? formatVolume(opt.peOI) : '-'}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-[#6b7280] text-sm">
+                      No option chain data available
+                    </div>
+                  )}
+
+                  {/* View Full Option Chain Button */}
+                  {fnoData?.optionChain && fnoData.optionChain.length > 0 && (
+                    <div className="mt-4 flex justify-center">
+                      <Button
+                        variant="outline"
+                        className="border-[#00D09C]/30 text-[#00D09C] hover:bg-[#00D09C]/5 font-semibold gap-2"
+                        onClick={handleViewFullOptionChain}
+                      >
+                        <Eye className="size-4" />
+                        View Full Option Chain
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* ─── F&O Quick Trade Button ──────────────────────────── */}
+              <div className="flex gap-3">
+                <Button
+                  className="flex-1 h-12 bg-[#00D09C] hover:bg-[#00b88a] text-white font-bold rounded-xl text-base gap-2"
+                  onClick={() => {
+                    setOrderSide('buy')
+                    setTradeSegment(stockDetail.isFuturesAvailable ? 'FUTURES' : 'OPTIONS')
+                    setShowTradePanel(true)
+                  }}
+                >
+                  <ShoppingCart className="size-5" />
+                  Buy F&O
+                </Button>
+                <Button
+                  className="flex-1 h-12 bg-[#eb5b3c] hover:bg-[#d44f33] text-white font-bold rounded-xl text-base gap-2"
+                  onClick={() => {
+                    setOrderSide('sell')
+                    setTradeSegment(stockDetail.isFuturesAvailable ? 'FUTURES' : 'OPTIONS')
+                    setShowTradePanel(true)
+                  }}
+                >
+                  Sell F&O
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════
+              TECHNICALS TAB
+          ═══════════════════════════════════════════════════════════════ */}
           {overviewTab === 'technicals' && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -812,6 +1424,7 @@ export function StockOverviewPage() {
               transition={{ duration: 0.3 }}
               className="space-y-6"
             >
+              {/* Technical Indicators */}
               <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
                 <CardContent className="p-5">
                   <h3 className="text-base font-semibold text-[#1a1a1a] mb-4 flex items-center gap-2">
@@ -834,10 +1447,79 @@ export function StockOverviewPage() {
                   </p>
                 </CardContent>
               </Card>
+
+              {/* Support & Resistance */}
+              <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
+                <CardContent className="p-5">
+                  <h3 className="text-base font-semibold text-[#1a1a1a] mb-4 flex items-center gap-2">
+                    <Target className="size-4 text-[#00D09C]" />
+                    Support & Resistance
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#6b7280]">Resistance 3</span>
+                      <span className="text-sm font-mono font-semibold text-[#eb5b3c]">--</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#6b7280]">Resistance 2</span>
+                      <span className="text-sm font-mono font-semibold text-[#eb5b3c]">--</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#6b7280]">Resistance 1</span>
+                      <span className="text-sm font-mono font-semibold text-[#eb5b3c]">--</span>
+                    </div>
+                    <div className="h-px bg-[#e5e7eb]" />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-[#1a1a1a]">Current Price</span>
+                      <span className={`text-sm font-mono font-bold ${isPositive ? 'text-[#00d09c]' : 'text-[#eb5b3c]'}`}>
+                        {stockDetail.currentPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="h-px bg-[#e5e7eb]" />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#6b7280]">Support 1</span>
+                      <span className="text-sm font-mono font-semibold text-[#00d09c]">--</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#6b7280]">Support 2</span>
+                      <span className="text-sm font-mono font-semibold text-[#00d09c]">--</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#6b7280]">Support 3</span>
+                      <span className="text-sm font-mono font-semibold text-[#00d09c]">--</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Signal Summary */}
+              <Card className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm">
+                <CardContent className="p-5">
+                  <h3 className="text-base font-semibold text-[#1a1a1a] mb-4 flex items-center gap-2">
+                    <Gauge className="size-4 text-[#00D09C]" />
+                    Signal Summary
+                  </h3>
+                  <div className="flex items-center justify-center py-6">
+                    <div className="text-center">
+                      <div className="size-20 rounded-full border-4 border-[#6b7280]/20 flex items-center justify-center mx-auto mb-3">
+                        <span className="text-lg font-bold text-[#6b7280]">Neutral</span>
+                      </div>
+                      <p className="text-sm text-[#6b7280]">
+                        No clear signal available
+                      </p>
+                      <p className="text-xs text-[#6b7280]/60 mt-1">
+                        Requires real-time data for accurate signals
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div>
           )}
 
-          {/* ─── News Tab ────────────────────────────────────────────── */}
+          {/* ═══════════════════════════════════════════════════════════════
+              NEWS TAB
+          ═══════════════════════════════════════════════════════════════ */}
           {overviewTab === 'news' && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -899,6 +1581,11 @@ export function StockOverviewPage() {
                         }`}>
                           {isPositive ? '+' : ''}{stockDetail.changePercent.toFixed(2)}%
                         </span>
+                        {tradeSegment !== 'EQUITY' && (
+                          <Badge className="text-[9px] font-bold bg-[#00d09c]/10 text-[#00d09c] border-[#00d09c]/20 border px-1.5 py-0">
+                            {tradeSegment}
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-xs text-[#6b7280] mt-0.5 truncate max-w-[200px]">{stockDetail.name}</p>
                     </div>
@@ -911,6 +1598,23 @@ export function StockOverviewPage() {
                       </p>
                     </div>
                   </div>
+
+                  {/* Segment Selector (if F&O available) */}
+                  {(stockDetail.isFuturesAvailable || stockDetail.isOptionsAvailable) && (
+                    <div className="flex rounded-xl bg-[#f5f7fa] p-1">
+                      {(['EQUITY', 'FUTURES', 'OPTIONS'] as const).map((seg) => (
+                        <button
+                          key={seg}
+                          className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${
+                            tradeSegment === seg ? 'bg-white text-[#1a1a1a] shadow-sm' : 'text-[#6b7280] hover:text-[#1a1a1a]'
+                          }`}
+                          onClick={() => setTradeSegment(seg)}
+                        >
+                          {seg}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Buy/Sell Toggle */}
                   <div className="flex rounded-xl bg-[#f5f7fa] p-1">
@@ -932,53 +1636,69 @@ export function StockOverviewPage() {
                     </button>
                   </div>
 
-                  {/* Order Type & Product Type */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider">Order Type</label>
-                      <select
-                        value={orderType}
-                        onChange={(e) => setOrderType(e.target.value)}
-                        className="w-full h-9 rounded-lg border border-[#e5e7eb] bg-white text-sm text-[#1a1a1a] px-3 focus:outline-none focus:ring-2 focus:ring-[#00D09C]/20 focus:border-[#00D09C]"
-                      >
-                        <option value="MARKET">Market</option>
-                        <option value="LIMIT">Limit</option>
-                      </select>
+                  {/* Order Type */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-[#6b7280] uppercase tracking-wider">Order Type</label>
+                    <div className="flex gap-2">
+                      {['MARKET', 'LIMIT'].map((type) => (
+                        <button
+                          key={type}
+                          onClick={() => setOrderType(type)}
+                          className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all border ${
+                            orderType === type
+                              ? 'border-[#00d09c] bg-[#00d09c]/5 text-[#00d09c]'
+                              : 'border-[#e5e7eb] text-[#6b7280] hover:border-[#d1d5db]'
+                          }`}
+                        >
+                          {type}
+                        </button>
+                      ))}
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider">Product</label>
-                      <select
-                        value={productType}
-                        onChange={(e) => setProductType(e.target.value)}
-                        className="w-full h-9 rounded-lg border border-[#e5e7eb] bg-white text-sm text-[#1a1a1a] px-3 focus:outline-none focus:ring-2 focus:ring-[#00D09C]/20 focus:border-[#00D09C]"
-                      >
-                        <option value="INTRADAY">Intraday</option>
-                        <option value="DELIVERY">Delivery</option>
-                      </select>
+                  </div>
+
+                  {/* Product Type */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-[#6b7280] uppercase tracking-wider">Product Type</label>
+                    <div className="flex gap-2">
+                      {['INTRADAY', 'DELIVERY'].map((type) => (
+                        <button
+                          key={type}
+                          onClick={() => setProductType(type)}
+                          className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all border ${
+                            productType === type
+                              ? 'border-[#00d09c] bg-[#00d09c]/5 text-[#00d09c]'
+                              : 'border-[#e5e7eb] text-[#6b7280] hover:border-[#d1d5db]'
+                          }`}
+                        >
+                          {type}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
                   {/* Quantity */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider">Quantity</label>
-                    <div className="flex items-center gap-2">
+                    <label className="text-xs font-semibold text-[#6b7280] uppercase tracking-wider">
+                      Quantity {tradeSegment !== 'EQUITY' ? `(Lot: ${stockDetail.lotSize})` : ''}
+                    </label>
+                    <div className="flex items-center gap-3">
                       <button
-                        className="h-9 w-9 flex items-center justify-center rounded-lg border border-[#e5e7eb] text-[#6b7280] hover:bg-[#f5f7fa] hover:text-[#1a1a1a] transition-colors"
-                        onClick={() => setQuantity(Math.max(1, quantity - 10))}
+                        className="size-10 rounded-lg border border-[#e5e7eb] flex items-center justify-center text-[#6b7280] hover:bg-[#f5f7fa] active:bg-[#e5e7eb] transition-colors"
+                        onClick={() => setQuantity(Math.max(1, quantity - (tradeSegment !== 'EQUITY' ? stockDetail.lotSize : 1)))}
                       >
-                        <Minus className="size-3.5" />
+                        <Minus className="size-4" />
                       </button>
                       <Input
                         type="number"
                         value={quantity}
                         onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="h-9 text-center font-mono border-[#e5e7eb] bg-white text-[#1a1a1a] focus:ring-[#00D09C]/20 focus:border-[#00D09C]"
+                        className="text-center font-mono text-lg font-bold bg-white border-[#e5e7eb] h-10"
                       />
                       <button
-                        className="h-9 w-9 flex items-center justify-center rounded-lg border border-[#e5e7eb] text-[#6b7280] hover:bg-[#f5f7fa] hover:text-[#1a1a1a] transition-colors"
-                        onClick={() => setQuantity(quantity + 10)}
+                        className="size-10 rounded-lg border border-[#e5e7eb] flex items-center justify-center text-[#6b7280] hover:bg-[#f5f7fa] active:bg-[#e5e7eb] transition-colors"
+                        onClick={() => setQuantity(quantity + (tradeSegment !== 'EQUITY' ? stockDetail.lotSize : 1))}
                       >
-                        <Plus className="size-3.5" />
+                        <Plus className="size-4" />
                       </button>
                     </div>
                   </div>
@@ -986,52 +1706,72 @@ export function StockOverviewPage() {
                   {/* Limit Price */}
                   {orderType === 'LIMIT' && (
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider">Limit Price</label>
+                      <label className="text-xs font-semibold text-[#6b7280] uppercase tracking-wider">Limit Price</label>
                       <Input
                         type="number"
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
-                        className="h-9 font-mono border-[#e5e7eb] bg-white text-[#1a1a1a] focus:ring-[#00D09C]/20 focus:border-[#00D09C]"
-                        placeholder="0.00"
+                        placeholder="Enter price"
+                        className="font-mono text-lg font-bold bg-white border-[#e5e7eb] h-10"
                       />
                     </div>
                   )}
 
                   {/* Order Summary */}
-                  <div className="rounded-xl bg-[#f5f7fa] p-4 space-y-2">
+                  <div className="bg-[#f8f9fb] rounded-xl p-4 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-[#6b7280]">Estimated Total</span>
-                      <span className="font-mono text-lg font-bold text-[#1a1a1a]">{formatINR(estimatedTotal)}</span>
+                      <span className="text-sm font-bold font-mono text-[#1a1a1a]">{formatINR(estimatedTotal)}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-[#6b7280]">Est. Brokerage (0.05%)</span>
-                      <span className="font-mono text-[10px] font-medium text-[#6b7280]">{formatINR(estimatedBrokerage)}</span>
+                      <span className="text-xs text-[#6b7280]">Brokerage</span>
+                      <span className="text-sm font-mono font-semibold text-[#6b7280]">{formatINR(estimatedBrokerage)}</span>
                     </div>
-                    <div className="flex items-center justify-between pt-1 border-t border-[#e5e7eb]">
-                      <span className="text-[10px] text-[#6b7280]">Total (incl. brokerage)</span>
-                      <span className="font-mono text-xs font-bold text-[#1a1a1a]">{formatINR(estimatedTotal + estimatedBrokerage)}</span>
+                    <div className="h-px bg-[#e5e7eb]" />
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-[#6b7280]">Segment</span>
+                      <span className="text-xs font-semibold text-[#1a1a1a]">{tradeSegment}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-[#6b7280]">Product</span>
+                      <span className="text-xs font-semibold text-[#1a1a1a]">{productType}</span>
+                    </div>
+                  </div>
+
+                  {/* Account Info */}
+                  <div className="bg-[#f0fdf4] rounded-xl p-4 space-y-2 border border-[#00d09c]/10">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-[#6b7280]">Available Balance</span>
+                      <span className="text-sm font-bold font-mono text-[#1a1a1a]">{formatINR(availableBalance)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-[#6b7280]">Buying Power</span>
+                      <span className="text-sm font-bold font-mono text-[#00d09c]">{formatINR(buyingPower)}</span>
                     </div>
                   </div>
 
                   {/* Submit Button */}
-                  <button
-                    className={`w-full h-12 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                  <Button
+                    className={`w-full h-12 font-bold rounded-xl text-base gap-2 ${
                       orderSide === 'buy'
-                        ? 'bg-[#00d09c] hover:bg-[#00b888] active:scale-[0.98]'
-                        : 'bg-[#eb5b3c] hover:bg-[#d14e31] active:scale-[0.98]'
+                        ? 'bg-[#00D09C] hover:bg-[#00b88a] text-white'
+                        : 'bg-[#eb5b3c] hover:bg-[#d44f33] text-white'
                     }`}
                     onClick={handlePlaceOrder}
                     disabled={placingOrder}
                   >
                     {placingOrder ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <Loader2 className="size-4 animate-spin" />
+                      <>
+                        <Loader2 className="size-5 animate-spin" />
                         Placing Order...
-                      </span>
+                      </>
                     ) : (
-                      orderSide === 'buy' ? `Buy ${stockDetail.symbol}` : `Sell ${stockDetail.symbol}`
+                      <>
+                        <ShoppingCart className="size-5" />
+                        {orderSide === 'buy' ? 'Buy' : 'Sell'} {quantity} {stockDetail.symbol}
+                      </>
                     )}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </motion.div>
