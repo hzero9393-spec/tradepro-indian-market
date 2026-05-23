@@ -39,6 +39,8 @@ export function AuthPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [googleAvailable, setGoogleAvailable] = useState(false)
+  const [googleChecked, setGoogleChecked] = useState(false)
 
   // Form fields
   const [name, setName] = useState('')
@@ -57,7 +59,7 @@ export function AuthPage() {
       const errorMessages: Record<string, string> = {
         google_denied: 'Google sign-in was cancelled.',
         no_code: 'Google authentication failed. Please try again.',
-        google_not_configured: 'Google Sign-In is not configured yet. Please use email/password.',
+        google_not_configured: 'Google Sign-In is coming soon! Please use email/password to create your account.',
         token_exchange_failed: 'Failed to authenticate with Google. Please try again.',
         user_info_failed: 'Failed to get your Google profile. Please try again.',
         account_deactivated: 'Your account has been deactivated. Please contact support.',
@@ -68,6 +70,20 @@ export function AuthPage() {
       // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname)
     }
+  }, [])
+
+  // Check if Google OAuth is configured
+  useEffect(() => {
+    fetch('/api/auth/google/status')
+      .then(res => res.json())
+      .then(data => {
+        setGoogleAvailable(data.configured)
+        setGoogleChecked(true)
+      })
+      .catch(() => {
+        setGoogleAvailable(false)
+        setGoogleChecked(true)
+      })
   }, [])
 
   const handleGoogleSignIn = () => {
@@ -328,14 +344,27 @@ export function AuthPage() {
 
                   <form onSubmit={handleLogin} className="space-y-5">
                     {/* Google Sign-In */}
-                    <button
-                      type="button"
-                      onClick={handleGoogleSignIn}
-                      className="w-full h-[46px] text-[14px] font-medium rounded-lg bg-white text-[#374151] border border-[#e0e0e0] hover:bg-[#f8f9fa] hover:border-[#d0d0d0] transition-all duration-200 flex items-center justify-center gap-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
-                    >
-                      <GoogleIcon className="size-5" />
-                      Continue with Google
-                    </button>
+                    {googleAvailable ? (
+                      <button
+                        type="button"
+                        onClick={handleGoogleSignIn}
+                        className="w-full h-[46px] text-[14px] font-medium rounded-lg bg-white text-[#374151] border border-[#e0e0e0] hover:bg-[#f8f9fa] hover:border-[#d0d0d0] transition-all duration-200 flex items-center justify-center gap-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                      >
+                        <GoogleIcon className="size-5" />
+                        Continue with Google
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        title="Coming Soon - Google Sign-In will be available soon!"
+                        className="w-full h-[46px] text-[14px] font-medium rounded-lg bg-[#f5f5f5] text-[#9ca3af] border border-[#e8eaf0] cursor-not-allowed flex items-center justify-center gap-2.5 relative"
+                      >
+                        <GoogleIcon className="size-5 opacity-50" />
+                        <span>Google Sign-In</span>
+                        <span className="absolute right-3 text-[10px] font-semibold bg-[#00D09C]/10 text-[#00D09C] px-2 py-0.5 rounded-full">Coming Soon</span>
+                      </button>
+                    )}
 
                     {/* Divider */}
                     <div className="relative flex items-center gap-3">
@@ -463,14 +492,27 @@ export function AuthPage() {
 
                   <form onSubmit={handleSignup} className="space-y-4">
                     {/* Google Sign-In */}
-                    <button
-                      type="button"
-                      onClick={handleGoogleSignIn}
-                      className="w-full h-[46px] text-[14px] font-medium rounded-lg bg-white text-[#374151] border border-[#e0e0e0] hover:bg-[#f8f9fa] hover:border-[#d0d0d0] transition-all duration-200 flex items-center justify-center gap-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
-                    >
-                      <GoogleIcon className="size-5" />
-                      Sign up with Google
-                    </button>
+                    {googleAvailable ? (
+                      <button
+                        type="button"
+                        onClick={handleGoogleSignIn}
+                        className="w-full h-[46px] text-[14px] font-medium rounded-lg bg-white text-[#374151] border border-[#e0e0e0] hover:bg-[#f8f9fa] hover:border-[#d0d0d0] transition-all duration-200 flex items-center justify-center gap-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                      >
+                        <GoogleIcon className="size-5" />
+                        Sign up with Google
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        title="Coming Soon - Google Sign-In will be available soon!"
+                        className="w-full h-[46px] text-[14px] font-medium rounded-lg bg-[#f5f5f5] text-[#9ca3af] border border-[#e8eaf0] cursor-not-allowed flex items-center justify-center gap-2.5 relative"
+                      >
+                        <GoogleIcon className="size-5 opacity-50" />
+                        <span>Google Sign-In</span>
+                        <span className="absolute right-3 text-[10px] font-semibold bg-[#00D09C]/10 text-[#00D09C] px-2 py-0.5 rounded-full">Coming Soon</span>
+                      </button>
+                    )}
 
                     {/* Divider */}
                     <div className="relative flex items-center gap-3">

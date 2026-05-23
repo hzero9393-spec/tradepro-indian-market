@@ -1,14 +1,13 @@
 // TradePro - Indian Stock Market Paper Trading Platform
-// Prisma Schema for Supabase PostgreSQL
+// Prisma Schema for SQLite
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DIRECT_URL")
-  directUrl = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 // ============================================================
@@ -25,8 +24,8 @@ model User {
   oauthProvider   String?   // 'google', 'github', etc.
   oauthId         String?   // Provider-specific user ID
   avatar          String?
-  role            UserRole  @default(USER)
-  subscription    SubscriptionTier @default(FREE)
+  role            String    @default("USER") // UserRole: USER, ADMIN, SUPER_ADMIN
+  subscription    String    @default("FREE") // SubscriptionTier: FREE, PREMIUM
 
   // Virtual Trading Account
   virtualBalance  Float     @default(100000) // ₹1,00,000 default
@@ -70,17 +69,6 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
-}
-
-enum UserRole {
-  USER
-  ADMIN
-  SUPER_ADMIN
-}
-
-enum SubscriptionTier {
-  FREE
-  PREMIUM
 }
 
 // ============================================================
@@ -215,9 +203,9 @@ model StockHistory {
 model Future {
   id              String   @id @default(cuid())
   underlying      String   // NIFTY, BANKNIFTY, RELIANCE etc
-  underlyingType  UnderlyingType @default(INDEX) // INDEX or STOCK
+  underlyingType  String   @default("INDEX") // UnderlyingType: INDEX, STOCK
   expiryDate      DateTime
-  expiryType      ExpiryType @default(MONTHLY)
+  expiryType      String   @default("MONTHLY") // ExpiryType: WEEKLY, MONTHLY
   lotSize         Int
 
   // Price Data
@@ -247,16 +235,6 @@ model Future {
   @@map("futures")
 }
 
-enum UnderlyingType {
-  INDEX
-  STOCK
-}
-
-enum ExpiryType {
-  WEEKLY
-  MONTHLY
-}
-
 // ============================================================
 // DERIVATIVES - OPTIONS (Indian Market Style)
 // ============================================================
@@ -264,12 +242,12 @@ enum ExpiryType {
 model Option {
   id              String   @id @default(cuid())
   underlying      String   // NIFTY, BANKNIFTY, RELIANCE etc
-  underlyingType  UnderlyingType @default(INDEX)
+  underlyingType  String   @default("INDEX") // UnderlyingType: INDEX, STOCK
   underlyingPrice Float    // Spot price at time of record
   expiryDate      DateTime
-  expiryType      ExpiryType @default(WEEKLY)
+  expiryType      String   @default("WEEKLY") // ExpiryType: WEEKLY, MONTHLY
   strikePrice     Float
-  optionType      OptionType // CE or PE
+  optionType      String   // OptionType: CE, PE
   
   // Price Data
   ltp             Float
@@ -302,11 +280,6 @@ model Option {
   @@map("options")
 }
 
-enum OptionType {
-  CE
-  PE
-}
-
 // ============================================================
 // TRADING - ORDERS
 // ============================================================
@@ -314,15 +287,15 @@ enum OptionType {
 model Order {
   id              String      @id @default(cuid())
   userId          String
-  orderType       OrderType   // MARKET, LIMIT, SL, SL-M
-  tradeDirection  TradeDirection // BUY, SELL
-  segment         Segment     // EQUITY, FUTURES, OPTIONS
-  productType     ProductType // INTRADAY, DELIVERY, CARRY_FORWARD
+  orderType       String      // OrderType: MARKET, LIMIT, SL, SL_M
+  tradeDirection  String      // TradeDirection: BUY, SELL
+  segment         String      // Segment: EQUITY, FUTURES, OPTIONS
+  productType     String      // ProductType: INTRADAY, DELIVERY, CARRY_FORWARD
   
   // Instrument Details
   symbol          String      // NIFTY, RELIANCE etc
   instrumentId    String?     // Future/Option ID if applicable
-  optionType      OptionType? // CE, PE (for options)
+  optionType      String?     // OptionType: CE, PE (for options)
   strikePrice     Float?      // For options
   expiryDate      DateTime?   // For derivatives
   lotSize         Int         @default(1)
@@ -340,7 +313,7 @@ model Order {
   marginRequired  Float       @default(0)
   
   // Status
-  status          OrderStatus @default(PENDING)
+  status          String      @default("PENDING") // OrderStatus: PENDING, PARTIALLY_FILLED, FILLED, CANCELLED, REJECTED, EXPIRED
   rejectReason    String?
   
   // Timestamps
@@ -359,39 +332,6 @@ model Order {
   @@map("orders")
 }
 
-enum OrderType {
-  MARKET
-  LIMIT
-  SL
-  SL_M
-}
-
-enum TradeDirection {
-  BUY
-  SELL
-}
-
-enum Segment {
-  EQUITY
-  FUTURES
-  OPTIONS
-}
-
-enum ProductType {
-  INTRADAY
-  DELIVERY
-  CARRY_FORWARD
-}
-
-enum OrderStatus {
-  PENDING
-  PARTIALLY_FILLED
-  FILLED
-  CANCELLED
-  REJECTED
-  EXPIRED
-}
-
 // ============================================================
 // TRADING - TRADES (Executed)
 // ============================================================
@@ -400,14 +340,14 @@ model Trade {
   id              String      @id @default(cuid())
   userId          String
   orderId         String?     @unique
-  segment         Segment
-  productType     ProductType
-  tradeDirection  TradeDirection
+  segment         String      // Segment: EQUITY, FUTURES, OPTIONS
+  productType     String      // ProductType: INTRADAY, DELIVERY, CARRY_FORWARD
+  tradeDirection  String      // TradeDirection: BUY, SELL
   
   // Instrument
   symbol          String
   instrumentId    String?
-  optionType      OptionType?
+  optionType      String?     // OptionType: CE, PE
   strikePrice     Float?
   expiryDate      DateTime?
   
@@ -442,14 +382,14 @@ model Trade {
 model Position {
   id              String      @id @default(cuid())
   userId          String
-  segment         Segment
-  productType     ProductType
-  tradeDirection  TradeDirection
+  segment         String      // Segment: EQUITY, FUTURES, OPTIONS
+  productType     String      // ProductType: INTRADAY, DELIVERY, CARRY_FORWARD
+  tradeDirection  String      // TradeDirection: BUY, SELL
   
   // Instrument
   symbol          String
   instrumentId    String?
-  optionType      OptionType?
+  optionType      String?     // OptionType: CE, PE
   strikePrice     Float?
   expiryDate      DateTime?
   lotSize         Int         @default(1)
@@ -582,7 +522,7 @@ model Challenge {
   id              String         @id @default(cuid())
   title           String
   description     String
-  challengeType   ChallengeType
+  challengeType   String         // ChallengeType: RETURN_SPRINT, RISK_MANAGER, VOLUME_MASTER, ACCURACY_KING
   targetMetric    String         // "return%", "max_drawdown", "volume"
   targetValue     Float
   prize           String
@@ -591,27 +531,13 @@ model Challenge {
   endDate         DateTime
   maxParticipants Int?
   currentParticipants Int        @default(0)
-  status          ChallengeStatus @default(UPCOMING)
+  status          String         @default("UPCOMING") // ChallengeStatus: UPCOMING, ACTIVE, COMPLETED, CANCELLED
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
   participations  ChallengeParticipation[]
 
   @@map("challenges")
-}
-
-enum ChallengeType {
-  RETURN_SPRINT
-  RISK_MANAGER
-  VOLUME_MASTER
-  ACCURACY_KING
-}
-
-enum ChallengeStatus {
-  UPCOMING
-  ACTIVE
-  COMPLETED
-  CANCELLED
 }
 
 model ChallengeParticipation {
