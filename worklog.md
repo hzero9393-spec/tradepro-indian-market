@@ -23,3 +23,33 @@ Stage Summary:
 - ✅ Dual schema support: SQLite for local dev, PostgreSQL with enums for Vercel
 - ✅ All env vars properly set on Vercel (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, JWT_SECRET, DATABASE_URL, DIRECT_URL)
 - Production URL: https://tradepro-indian-market.vercel.app
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Re-deploy to Vercel after user deleted project, set all env vars
+
+Work Log:
+- Removed old .vercel directory (old project was deleted by user)
+- Deployed new project to Vercel using CLI with token
+- Renamed project from "my-project" to "tradepro-indian-market"
+- Added domain tradepro-indian-market.vercel.app
+- Set all environment variables on Vercel Production:
+  - GOOGLE_CLIENT_ID
+  - GOOGLE_CLIENT_SECRET
+  - GOOGLE_REDIRECT_URI (https://tradepro-indian-market.vercel.app/api/auth/google/callback)
+  - JWT_SECRET
+  - JWT_EXPIRES_IN
+  - NEXT_PUBLIC_APP_URL
+  - NEXT_PUBLIC_APP_NAME
+- Verified deployment: HTTP 200 on all endpoints
+- Verified Google OAuth status: configured:true
+
+Stage Summary:
+- ✅ New Vercel project deployed: tradepro-indian-market
+- ✅ Production URL: https://tradepro-indian-market.vercel.app
+- ✅ Google OAuth configured and verified (status API returns true)
+- ✅ All 7 environment variables set on Vercel Production
+- ⚠️ MISSING: DATABASE_URL (Supabase PostgreSQL) - needed for real database operations
+- ⚠️ MISSING: DIRECT_URL (Supabase PostgreSQL) - needed for Prisma migrations
+- Note: Build currently uses SQLite schema because DATABASE_URL is not set on Vercel
