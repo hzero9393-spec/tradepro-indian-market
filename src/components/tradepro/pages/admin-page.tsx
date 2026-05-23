@@ -33,6 +33,12 @@ import {
   Settings2,
   X,
   ChevronDown,
+  FileText,
+  Download,
+  Loader2,
+  UserCircle,
+  ArrowUpDown,
+  Wallet,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -911,6 +917,162 @@ function AdminAnalytics() {
   )
 }
 
+// ─── Tab 6: Reports ──────────────────────────────────────────────────
+
+function AdminReports() {
+  const [downloading, setDownloading] = useState<string | null>(null)
+
+  const handleDownload = async (type: 'users' | 'trades' | 'revenue') => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('tradepro_token') : null
+    if (!token) {
+      // For admin page, try getting from the admin auth
+      const adminToken = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
+      if (!adminToken) return
+    }
+
+    setDownloading(type)
+    try {
+      const authToken = localStorage.getItem('tradepro_token') || localStorage.getItem('admin_token')
+      const res = await fetch(`/api/admin/reports?type=${type}`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      })
+      if (!res.ok) throw new Error('Failed to download report')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const filenameMap: Record<string, string> = {
+        users: 'users-report.pdf',
+        trades: 'trades-report.pdf',
+        revenue: 'revenue-report.pdf',
+      }
+      a.download = filenameMap[type]
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch {
+      // silent error
+    } finally {
+      setDownloading(null)
+    }
+  }
+
+  const reports = [
+    {
+      id: 'users' as const,
+      title: 'Users Report',
+      description: 'All user data including balance, trades, P&L',
+      icon: UserCircle,
+      iconBg: 'bg-tp-primary/10',
+      iconColor: 'text-tp-primary',
+      details: ['Name, Email, Phone', 'Virtual Balance & Margin', 'Total Trades & Win Rate', 'P&L & Subscription Plan', 'Account Status & Last Login'],
+    },
+    {
+      id: 'trades' as const,
+      title: 'Trades Report',
+      description: 'Complete trade history with user details',
+      icon: ArrowUpDown,
+      iconBg: 'bg-tp-secondary/10',
+      iconColor: 'text-tp-secondary',
+      details: ['User Name & Email', 'Symbol & Segment', 'Buy/Sell Direction', 'Quantity & Fill Price', 'P&L per Trade', 'Execution Timestamp'],
+    },
+    {
+      id: 'revenue' as const,
+      title: 'Revenue Report',
+      description: 'Premium subscription and revenue data',
+      icon: Wallet,
+      iconBg: 'bg-amber-500/10',
+      iconColor: 'text-amber-600',
+      details: ['Free vs Premium Breakdown', 'Monthly Recurring Revenue', 'Annual Revenue Projection', 'Conversion Rate', 'Premium User List'],
+    },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <Card className="glass-card rounded-2xl border-0 shadow-md">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-tp-on-surface">
+            <FileText className="size-5 text-tp-primary" />
+            Download Reports (PDF)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-tp-on-surface-variant mb-6">
+            Generate and download comprehensive PDF reports for your platform data.
+          </p>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            {reports.map((report) => {
+              const Icon = report.icon
+              const isDownloading = downloading === report.id
+              return (
+                <div
+                  key={report.id}
+                  className="flex flex-col rounded-2xl border border-tp-outline-variant/30 bg-tp-surface-container/50 p-5 transition-all hover:border-tp-primary/30 hover:shadow-md"
+                >
+                  {/* Icon + Title */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`flex size-11 items-center justify-center rounded-xl ${report.iconBg} ${report.iconColor}`}>
+                      <Icon className="size-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-tp-on-surface">{report.title}</h3>
+                      <p className="text-xs text-tp-on-surface-variant">{report.description}</p>
+                    </div>
+                  </div>
+
+                  {/* Details */}
+                  <div className="flex-1 mb-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-tp-on-surface-variant mb-2">Includes</p>
+                    <ul className="space-y-1.5">
+                      {report.details.map((detail, i) => (
+                        <li key={i} className="flex items-center gap-2 text-xs text-tp-on-surface-variant">
+                          <div className="size-1.5 rounded-full bg-tp-primary/50 shrink-0" />
+                          {detail}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Download Button */}
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleDownload(report.id)}
+                      disabled={downloading !== null}
+                      className="flex-1 gap-2 rounded-xl bg-tp-primary text-white hover:bg-tp-primary/90 spring-interaction"
+                    >
+                      {isDownloading ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="size-4" />
+                          Export PDF
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={downloading !== null}
+                      className="gap-2 rounded-xl border-tp-outline-variant/50 text-tp-on-surface-variant hover:bg-tp-surface-container"
+                      onClick={() => handleDownload(report.id)}
+                    >
+                      <FileText className="size-4" />
+                      CSV
+                    </Button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 // ─── Main Component ──────────────────────────────────────────────────
 
 export function AdminPage() {
@@ -952,6 +1114,9 @@ export function AdminPage() {
             <TabsTrigger value="analytics" className="rounded-xl text-xs sm:text-sm data-[state=active]:bg-tp-primary data-[state=active]:text-white">
               Analytics
             </TabsTrigger>
+            <TabsTrigger value="reports" className="rounded-xl text-xs sm:text-sm data-[state=active]:bg-tp-primary data-[state=active]:text-white">
+              Reports
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -965,6 +1130,9 @@ export function AdminPage() {
           </TabsContent>
           <TabsContent value="holidays">
             <HolidayCalendar />
+          </TabsContent>
+          <TabsContent value="reports">
+            <AdminReports />
           </TabsContent>
           <TabsContent value="analytics">
             <AdminAnalytics />

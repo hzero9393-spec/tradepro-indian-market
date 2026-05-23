@@ -151,6 +151,10 @@ import {
   Ban,
   BarChart3,
   Settings2,
+  FileText,
+  Download,
+  Loader2,
+  ArrowUpDown,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -210,6 +214,63 @@ const userGrowthData = [
 
 const lineChartConfig: ChartConfig = { users: { label: 'Users', color: '#00D09C' } }
 
+function ReportCard({ id, title, desc, icon: RIcon, items }: {
+  id: string
+  title: string
+  desc: string
+  icon: React.ComponentType<{ className?: string }>
+  items: string[]
+}) {
+  const [downloading, setDownloading] = useState<string | null>(null)
+  const handleDownload = async (type: string) => {
+    const token = localStorage.getItem('tradepro_token') || localStorage.getItem('admin_token')
+    if (!token) return
+    setDownloading(type)
+    try {
+      const res = await fetch(`/api/admin/reports?type=${type}`, { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${type}-report.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch { /* silent */ } finally { setDownloading(null) }
+  }
+  return (
+    <div className="flex flex-col rounded-xl border border-[#e5e7eb] bg-[#f7f8fc] p-5 hover:border-[#00D09C]/30 transition-all">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="size-11 rounded-xl bg-[#00D09C]/10 flex items-center justify-center text-[#00D09C]">
+          <RIcon className="size-5" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-[#1a1a2e]">{title}</h3>
+          <p className="text-xs text-[#6b7280]">{desc}</p>
+        </div>
+      </div>
+      <div className="flex-1 mb-4">
+        <ul className="space-y-1.5">
+          {items.map((item, i) => (
+            <li key={i} className="flex items-center gap-2 text-xs text-[#6b7280]">
+              <div className="size-1.5 rounded-full bg-[#00D09C]/50" />{item}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <Button
+        onClick={() => handleDownload(id)}
+        disabled={downloading !== null}
+        className="w-full gap-2 bg-[#00D09C] hover:bg-[#00b888] text-white"
+      >
+        {downloading === id ? <><Loader2 className="size-4 animate-spin" /> Generating...</> : <><Download className="size-4" /> Export PDF</>}
+      </Button>
+    </div>
+  )
+}
+
 function AdminPanel() {
   const [indices, setIndices] = useState(indexSettings)
   const [userFilter, setUserFilter] = useState('All')
@@ -267,6 +328,7 @@ function AdminPanel() {
             <TabsTrigger value="users" className="data-[state=active]:bg-[#00D09C]/10 data-[state=active]:text-[#00D09C]">Users</TabsTrigger>
             <TabsTrigger value="market" className="data-[state=active]:bg-[#00D09C]/10 data-[state=active]:text-[#00D09C]">Market Control</TabsTrigger>
             <TabsTrigger value="analytics" className="data-[state=active]:bg-[#00D09C]/10 data-[state=active]:text-[#00D09C]">Analytics</TabsTrigger>
+            <TabsTrigger value="reports" className="data-[state=active]:bg-[#00D09C]/10 data-[state=active]:text-[#00D09C]">Reports</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
@@ -490,6 +552,27 @@ function AdminPanel() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Reports Tab */}
+          <TabsContent value="reports" className="space-y-6">
+            <Card className="bg-white border-[#e5e7eb] rounded-xl">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold text-[#1a1a2e]">
+                  <FileText className="size-5 text-[#00D09C]" />
+                  Download Reports (PDF)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-[#6b7280] mb-6">Generate and download comprehensive PDF reports for your platform data.</p>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  <ReportCard id="users" title="Users Report" desc="All user data including balance, trades, P&L" icon={Users} items={['Name, Email, Phone', 'Virtual Balance & Margin', 'Total Trades & Win Rate', 'P&L & Subscription Plan']} />
+                  <ReportCard id="trades" title="Trades Report" desc="Complete trade history with user details" icon={ArrowUpDown} items={['User Name & Email', 'Symbol & Segment', 'Buy/Sell Direction', 'Quantity, Price & P&L']} />
+                  <ReportCard id="revenue" title="Revenue Report" desc="Premium subscription and revenue data" icon={IndianRupee} items={['Free vs Premium Breakdown', 'Monthly Recurring Revenue', 'Annual Revenue Projection', 'Conversion Rate']} />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
         </Tabs>
       </main>
     </div>
