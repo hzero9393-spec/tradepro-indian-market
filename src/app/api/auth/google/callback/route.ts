@@ -5,6 +5,13 @@ import { generateToken } from '@/lib/auth'
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ''
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || ''
 
+// Helper to safely encode error messages for URL
+function safeErrorRedirect(baseUrl: string, errorType: string, details?: string): NextResponse {
+  const encodedDetails = details ? `&details=${encodeURIComponent(details.substring(0, 200))}` : ''
+  console.error(`[Google OAuth] Redirecting with error: ${errorType}`, details || '')
+  return NextResponse.redirect(`${baseUrl}/?auth_error=${errorType}${encodedDetails}`)
+}
+
 interface GoogleTokenResponse {
   access_token: string
   id_token: string
@@ -50,8 +57,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-      console.error('[Google OAuth] Not configured - missing CLIENT_ID or CLIENT_SECRET')
-      return NextResponse.redirect(`${baseUrl}/?auth_error=google_not_configured`)
+      return safeErrorRedirect(baseUrl, 'google_not_configured', 
+        `CLIENT_ID=${GOOGLE_CLIENT_ID ? 'SET' : 'MISSING'}, CLIENT_SECRET=${GOOGLE_CLIENT_SECRET ? 'SET' : 'MISSING'}`)
     }
 
     // Determine redirect URI (must match the one used in the initial request)
@@ -74,8 +81,7 @@ export async function GET(request: NextRequest) {
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text()
-      console.error('[Google OAuth] Token exchange failed:', tokenResponse.status, errorData)
-      return NextResponse.redirect(`${baseUrl}/?auth_error=token_exchange_failed`)
+      return safeErrorRedirect(baseUrl, 'token_exchange_failed', `Status ${tokenResponse.status}: ${errorData.substring(0, 150)}`)
     }
 
     const tokenData: GoogleTokenResponse = await tokenResponse.json()
@@ -88,8 +94,8 @@ export async function GET(request: NextRequest) {
     })
 
     if (!userResponse.ok) {
-      console.error('[Google OAuth] Failed to fetch user info:', userResponse.status)
-      return NextResponse.redirect(`${baseUrl}/?auth_error=user_info_failed`)
+      const errorText = await userResponse.text()
+      return safeErrorRedirect(baseUrl, 'user_info_failed', `Status ${userResponse.status}: ${errorText.substring(0, 150)}`)
     }
 
     const googleUser: GoogleUserInfo = await userResponse.json()
@@ -97,12 +103,18 @@ export async function GET(request: NextRequest) {
 
     // Check if user exists with this Google OAuth ID
     console.log('[Google OAuth] Looking up user in database...')
-    let user = await db.user.findFirst({
-      where: {
-        oauthProvider: 'google',
-        oauthId: googleUser.sub,
-      },
-    })
+    let user
+    try {
+      user = await db.user.findFirst({
+        where: {
+          oauthProvider: 'google',
+          oauthId: googleUser.sub,
+        },
+      })
+    } catch (dbError) {
+      const msg = dbError instanceof Error ? dbError.message : String(dbError)
+      return safeErrorRedirect(baseUrl, 'db_query_failed', `findFirst: ${msg.substring(0, 150)}`)
+    }
 
     if (user) {
       // Update existing OAuth user's info
@@ -159,47 +171,62 @@ export async function GET(request: NextRequest) {
 
     // Check if account is active
     if (!user.isActive) {
-      console.error('[Google OAuth] Account deactivated:', user.id)
-      return NextResponse.redirect(`${baseUrl}/?auth_error=account_deactivated`)
+      return safeErrorRedirect(baseUrl, 'account_deactivated', `User ${user.id} is deactivated`)
     }
 
     // Generate JWT token
-    const token = generateToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-    })
+    let token
+    try {
+      token = generateToken({
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+      })
+    } catch (tokenError) {
+      const msg = tokenError instanceof Error ? tokenError.message : String(tokenError)
+      return safeErrorRedirect(baseUrl, 'token_generation_failed', `JWT: ${msg.substring(0, 150)}`)
+    }
 
     // Create session
     console.log('[Google OAuth] Creating session...')
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 7)
 
-    await db.session.create({
-      data: {
-        userId: user.id,
-        token,
-        device: request.headers.get('user-agent')?.substring(0, 255) || 'Google OAuth',
-        ipAddress: request.headers.get('x-forwarded-for') || null,
-        expiresAt,
-      },
-    })
+    try {
+      await db.session.create({
+        data: {
+          userId: user.id,
+          token,
+          device: request.headers.get('user-agent')?.substring(0, 255) || 'Google OAuth',
+          ipAddress: request.headers.get('x-forwarded-for') || null,
+          expiresAt,
+        },
+      })
+    } catch (sessionError) {
+      const msg = sessionError instanceof Error ? sessionError.message : String(sessionError)
+      return safeErrorRedirect(baseUrl, 'session_create_failed', `Session: ${msg.substring(0, 150)}`)
+    }
 
     console.log('[Google OAuth] Login successful, redirecting to home')
 
     // Update last login
-    await db.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    })
+    try {
+      await db.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      })
+    } catch (updateError) {
+      // Non-critical, just log
+      console.error('[Google OAuth] Failed to update lastLoginAt (non-critical):', updateError)
+    }
 
     // Redirect to home with token
     return NextResponse.redirect(`${baseUrl}/?auth_token=${token}`)
   } catch (error) {
-    console.error('[Google OAuth] Callback error:', error)
-    // Include more specific error info for debugging
-    const errorMsg = error instanceof Error ? error.message : String(error)
-    console.error('[Google OAuth] Error details:', errorMsg)
-    return NextResponse.redirect(`${baseUrl}/?auth_error=oauth_callback_failed`)
+    const errorMsg = error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+    const errorStack = error instanceof Error ? error.stack?.substring(0, 300) || '' : ''
+    console.error('[Google OAuth] Callback error:', errorMsg)
+    console.error('[Google OAuth] Stack:', errorStack)
+    return safeErrorRedirect(baseUrl, 'oauth_callback_failed', `${errorMsg} | ${errorStack.substring(0, 100)}`)
   }
 }

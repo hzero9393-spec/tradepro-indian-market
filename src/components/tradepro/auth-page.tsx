@@ -55,6 +55,7 @@ export function AuthPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const authError = params.get('auth_error')
+    const authDetails = params.get('details')
     if (authError) {
       const errorMessages: Record<string, string> = {
         google_denied: 'Google sign-in was cancelled.',
@@ -64,8 +65,15 @@ export function AuthPage() {
         user_info_failed: 'Failed to get your Google profile. Please try again.',
         account_deactivated: 'Your account has been deactivated. Please contact support.',
         oauth_callback_failed: 'Something went wrong during Google sign-in. Please try again.',
+        db_query_failed: 'Database connection error. Please try again later.',
+        session_create_failed: 'Failed to create session. Please try again.',
+        token_generation_failed: 'Authentication token error. Please try again.',
       }
-      const msg = errorMessages[authError] || 'Authentication failed. Please try again.'
+      let msg = errorMessages[authError] || 'Authentication failed. Please try again.'
+      // Append debug details if available (helps with troubleshooting)
+      if (authDetails) {
+        msg += ` (${authDetails})`
+      }
       setError(msg)
       // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname)
