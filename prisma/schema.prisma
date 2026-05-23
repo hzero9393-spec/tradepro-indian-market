@@ -1,12 +1,12 @@
 // TradePro - Indian Stock Market Paper Trading Platform
-// Prisma Schema for SQLite
+// Prisma Schema for PostgreSQL (Production)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
