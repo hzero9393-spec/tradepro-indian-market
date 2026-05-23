@@ -54,7 +54,7 @@ model User {
   sessions        Session[]
 
   @@index([email])
-  @@unique([oauthProvider, oauthId])
+  @@index([oauthProvider, oauthId])
   @@map("users")
 }
 
