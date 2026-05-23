@@ -9,7 +9,7 @@ interface GoogleTokenResponse {
   access_token: string
   id_token: string
   token_type: string
-  expires_in: number
+  expiresIn: number
 }
 
 interface GoogleUserInfo {
@@ -22,7 +22,17 @@ interface GoogleUserInfo {
   family_name?: string
 }
 
+// Get the base URL for redirects (works on Vercel and locally)
+function getBaseUrl(request: NextRequest): string {
+  // On Vercel, use the x-forwarded-host header
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || 'localhost:3000'
+  const protocol = request.headers.get('x-forwarded-proto') || 'https'
+  return `${protocol}://${host}`
+}
+
 export async function GET(request: NextRequest) {
+  const baseUrl = getBaseUrl(request)
+
   try {
     const { searchParams } = new URL(request.url)
     const code = searchParams.get('code')
@@ -30,23 +40,26 @@ export async function GET(request: NextRequest) {
 
     // Handle user denial or error
     if (error) {
-      console.error('Google OAuth error:', error)
-      return NextResponse.redirect(new URL('/?auth_error=google_denied', request.url))
+      console.error('[Google OAuth] User denied:', error)
+      return NextResponse.redirect(`${baseUrl}/?auth_error=google_denied`)
     }
 
     if (!code) {
-      return NextResponse.redirect(new URL('/?auth_error=no_code', request.url))
+      console.error('[Google OAuth] No code in callback')
+      return NextResponse.redirect(`${baseUrl}/?auth_error=no_code`)
     }
 
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-      console.error('Google OAuth not configured')
-      return NextResponse.redirect(new URL('/?auth_error=google_not_configured', request.url))
+      console.error('[Google OAuth] Not configured - missing CLIENT_ID or CLIENT_SECRET')
+      return NextResponse.redirect(`${baseUrl}/?auth_error=google_not_configured`)
     }
 
     // Determine redirect URI (must match the one used in the initial request)
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${new URL(request.url).origin}/api/auth/google/callback`
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${baseUrl}/api/auth/google/callback`
+    console.log('[Google OAuth] Using redirect URI:', redirectUri)
 
     // Exchange authorization code for tokens
+    console.log('[Google OAuth] Exchanging code for tokens...')
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -61,25 +74,29 @@ export async function GET(request: NextRequest) {
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text()
-      console.error('Google token exchange failed:', errorData)
-      return NextResponse.redirect(new URL('/?auth_error=token_exchange_failed', request.url))
+      console.error('[Google OAuth] Token exchange failed:', tokenResponse.status, errorData)
+      return NextResponse.redirect(`${baseUrl}/?auth_error=token_exchange_failed`)
     }
 
     const tokenData: GoogleTokenResponse = await tokenResponse.json()
+    console.log('[Google OAuth] Token exchange successful')
 
     // Get user info from Google
+    console.log('[Google OAuth] Fetching user info...')
     const userResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     })
 
     if (!userResponse.ok) {
-      console.error('Failed to fetch Google user info')
-      return NextResponse.redirect(new URL('/?auth_error=user_info_failed', request.url))
+      console.error('[Google OAuth] Failed to fetch user info:', userResponse.status)
+      return NextResponse.redirect(`${baseUrl}/?auth_error=user_info_failed`)
     }
 
     const googleUser: GoogleUserInfo = await userResponse.json()
+    console.log('[Google OAuth] Got user info for:', googleUser.email)
 
     // Check if user exists with this Google OAuth ID
+    console.log('[Google OAuth] Looking up user in database...')
     let user = await db.user.findFirst({
       where: {
         oauthProvider: 'google',
@@ -89,6 +106,7 @@ export async function GET(request: NextRequest) {
 
     if (user) {
       // Update existing OAuth user's info
+      console.log('[Google OAuth] Updating existing user:', user.id)
       user = await db.user.update({
         where: { id: user.id },
         data: {
@@ -100,12 +118,14 @@ export async function GET(request: NextRequest) {
       })
     } else {
       // Check if user with this email already exists (linked account)
+      console.log('[Google OAuth] Checking for existing user by email...')
       user = await db.user.findUnique({
         where: { email: googleUser.email },
       })
 
       if (user) {
         // Link Google account to existing user
+        console.log('[Google OAuth] Linking Google account to existing user:', user.id)
         user = await db.user.update({
           where: { id: user.id },
           data: {
@@ -118,6 +138,7 @@ export async function GET(request: NextRequest) {
         })
       } else {
         // Create new user from Google account
+        console.log('[Google OAuth] Creating new user for:', googleUser.email)
         user = await db.user.create({
           data: {
             name: googleUser.name,
@@ -132,12 +153,14 @@ export async function GET(request: NextRequest) {
             subscription: 'FREE',
           },
         })
+        console.log('[Google OAuth] New user created:', user.id)
       }
     }
 
     // Check if account is active
     if (!user.isActive) {
-      return NextResponse.redirect(new URL('/?auth_error=account_deactivated', request.url))
+      console.error('[Google OAuth] Account deactivated:', user.id)
+      return NextResponse.redirect(`${baseUrl}/?auth_error=account_deactivated`)
     }
 
     // Generate JWT token
@@ -148,6 +171,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Create session
+    console.log('[Google OAuth] Creating session...')
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 7)
 
@@ -161,13 +185,21 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // Redirect to home with token
-    const redirectUrl = new URL('/', request.url)
-    redirectUrl.searchParams.set('auth_token', token)
+    console.log('[Google OAuth] Login successful, redirecting to home')
 
-    return NextResponse.redirect(redirectUrl)
+    // Update last login
+    await db.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    })
+
+    // Redirect to home with token
+    return NextResponse.redirect(`${baseUrl}/?auth_token=${token}`)
   } catch (error) {
-    console.error('Google OAuth callback error:', error)
-    return NextResponse.redirect(new URL('/?auth_error=oauth_callback_failed', request.url))
+    console.error('[Google OAuth] Callback error:', error)
+    // Include more specific error info for debugging
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error('[Google OAuth] Error details:', errorMsg)
+    return NextResponse.redirect(`${baseUrl}/?auth_error=oauth_callback_failed`)
   }
 }

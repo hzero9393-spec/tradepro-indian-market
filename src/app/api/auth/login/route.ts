@@ -86,7 +86,9 @@ export async function POST(request: NextRequest) {
       token,
     })
   } catch (error) {
-    console.error('Login error:', error)
+    console.error('[Login API] Error:', error)
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error('[Login API] Error details:', errorMsg)
     return NextResponse.json(
       { error: 'Something went wrong. Please try again.' },
       { status: 500 }

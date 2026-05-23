@@ -95,7 +95,9 @@ export async function POST(request: NextRequest) {
       token,
     }, { status: 201 })
   } catch (error) {
-    console.error('Registration error:', error)
+    console.error('[Register API] Error:', error)
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error('[Register API] Error details:', errorMsg)
     return NextResponse.json(
       { error: 'Something went wrong. Please try again.' },
       { status: 500 }

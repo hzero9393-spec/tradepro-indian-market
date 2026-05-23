@@ -57,7 +57,9 @@ export async function GET(request: NextRequest) {
       user: userWithoutPassword,
     })
   } catch (error) {
-    console.error('Auth me error:', error)
+    console.error('[Auth Me API] Error:', error)
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error('[Auth Me API] Error details:', errorMsg)
     return NextResponse.json(
       { error: 'Something went wrong' },
       { status: 500 }

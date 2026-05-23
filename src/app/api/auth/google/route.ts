@@ -6,16 +6,17 @@ export async function GET(request: NextRequest) {
     const googleRedirectUri = process.env.GOOGLE_REDIRECT_URI || ''
 
     if (!googleClientId) {
-      // Redirect back to home with a clear error message
-      const redirectUrl = new URL('/', request.url)
-      redirectUrl.searchParams.set('auth_error', 'google_not_configured')
-      return NextResponse.redirect(redirectUrl)
+      // Get base URL from headers (works on Vercel)
+      const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || 'localhost:3000'
+      const protocol = request.headers.get('x-forwarded-proto') || 'https'
+      const baseUrl = `${protocol}://${host}`
+      return NextResponse.redirect(`${baseUrl}/?auth_error=google_not_configured`)
     }
 
     // Build Google OAuth URL
     const params = new URLSearchParams({
       client_id: googleClientId,
-      redirect_uri: googleRedirectUri || `${new URL(request.url).origin}/api/auth/google/callback`,
+      redirect_uri: googleRedirectUri,
       response_type: 'code',
       scope: 'openid email profile',
       access_type: 'offline',
@@ -26,7 +27,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(googleAuthUrl)
   } catch (error) {
-    console.error('Google OAuth init error:', error)
-    return NextResponse.redirect(new URL('/?auth_error=google_oauth_failed', request.url))
+    console.error('[Google OAuth] Init error:', error)
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || 'localhost:3000'
+    const protocol = request.headers.get('x-forwarded-proto') || 'https'
+    const baseUrl = `${protocol}://${host}`
+    return NextResponse.redirect(`${baseUrl}/?auth_error=google_oauth_failed`)
   }
 }

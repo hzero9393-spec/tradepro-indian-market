@@ -16,9 +16,30 @@ Work Log:
 - Verified `setup-db.js` correctly detects PostgreSQL and switches schema on Vercel
 
 Stage Summary:
-- ✅ Prisma schema pushed to Supabase - all tables created (users, sessions, trades, positions, orders, etc.)
+- ✅ Prisma schema pushed to Supabase - all tables created
 - ✅ Main schema.prisma updated to PostgreSQL provider
-- ✅ Schema includes `directUrl` for Supabase connection pooler compatibility
 - ✅ Vercel deployment successful at `tradepro-indian-market.vercel.app`
-- ✅ Google OAuth should now work (User table exists in Supabase for OAuth callback to create/find users)
-- Pending: Enterprise-grade admin panel rebuild (existing panel is already comprehensive at 2295 lines)
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Fix Google OAuth callback - PgBouncer prepared statements + URL redirect fix + error logging
+
+Work Log:
+- Identified root cause: Supabase PgBouncer doesn't support Prisma prepared statements
+- Added `?pgbouncer=true` to DATABASE_URL on Vercel (disables prepared statements)
+- Updated local `.env` with `?pgbouncer=true` parameter
+- Fixed Google OAuth callback URL issue - replaced `new URL(request.url)` with header-based base URL detection (`getBaseUrl()`)
+- Added detailed console.log error tracking to Google OAuth callback route
+- Added better error logging to `/api/auth/login`, `/api/auth/register`, `/api/auth/me` routes
+- Fixed Google OAuth init route for proper URL handling on Vercel
+- Verified local database connection works (User count: 2, Session count: 4)
+- Deployed to Vercel production (build successful)
+
+Stage Summary:
+- ✅ DATABASE_URL now has `?pgbouncer=true` on Vercel
+- ✅ Google OAuth callback uses header-based URL detection instead of `new URL(request.url)`
+- ✅ All auth routes have detailed error logging
+- ✅ Database connection verified locally
+- ✅ Latest deployment: `tradepro-indian-market.vercel.app`
+- ⏳ Need user to test Google OAuth sign-in on production
