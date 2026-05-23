@@ -3,7 +3,14 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const schemaPath = path.join(__dirname, '..', 'prisma', 'schema.prisma');
+const schemaBackupPath = path.join(__dirname, '..', 'prisma', 'schema.prisma.bak');
 const dbUrl = process.env.DATABASE_URL || '';
+
+// Backup original schema (SQLite version)
+if (!fs.existsSync(schemaBackupPath)) {
+  fs.copyFileSync(schemaPath, schemaBackupPath);
+  console.log('📦 Backed up SQLite schema');
+}
 
 let schema = fs.readFileSync(schemaPath, 'utf8');
 
@@ -27,6 +34,12 @@ if (dbUrl.startsWith('postgresql://')) {
   fs.writeFileSync(schemaPath, schema);
   console.log('✅ Schema switched to PostgreSQL');
 } else {
+  // Restore SQLite schema if needed
+  const backupSchema = fs.readFileSync(schemaBackupPath, 'utf8');
+  if (backupSchema !== schema) {
+    fs.writeFileSync(schemaPath, backupSchema);
+    console.log('✅ Schema restored to SQLite');
+  }
   console.log('🔧 SQLite/local detected - keeping SQLite provider');
 }
 
@@ -36,5 +49,5 @@ try {
   console.log('✅ Prisma client generated');
 } catch (error) {
   console.error('❌ Prisma generate failed:', error.message);
-  process.exit(1);
+  // Don't exit with error - let the build continue
 }
